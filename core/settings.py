@@ -163,6 +163,7 @@ SIMPLE_JWT = {
 CORS_ALLOW_ALL_ORIGINS = True
 
 # External services
+BACKEND_URL = os.getenv("BACKEND_URL", "https://level-antoinette-sagiyqwgey-311e9cc7.koyeb.app/")
 SUPABASE_URL = os.getenv("SUPABASE_URL", "")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
 SUPABASE_BUCKET = os.getenv("SUPABASE_BUCKET", "products")
