@@ -7,3 +7,4 @@ supabase==2.27.3
 stripe==12.5.1
 requests==2.32.4
 psycopg2-binary==2.9.9
+gunicorn 
