@@ -9,6 +9,7 @@ from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from supabase import create_client
 
@@ -44,6 +45,13 @@ from .serializers import (
     CategoryFilterSerializer,
     ProductFilterValueSerializer,
 )
+
+
+class HealthCheckView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({"status": "ok"})
 
 
 class RegisterView(generics.CreateAPIView):

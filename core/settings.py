@@ -93,6 +93,7 @@ channel_binding = query.get("channel_binding", [None])[0]
 db_options = {"sslmode": sslmode}
 if channel_binding:
     db_options["channel_binding"] = channel_binding
+db_options["connect_timeout"] = int(os.getenv("DB_CONNECT_TIMEOUT", "5"))
 
 DATABASES = {
     "default": {
