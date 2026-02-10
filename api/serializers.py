@@ -183,7 +183,8 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         )
 
     def _generate_unique_slug(self, raw_value: str) -> str:
-        base_slug = slugify(raw_value) or "product"
+        max_length = Product._meta.get_field("slug").max_length or 50
+        base_slug = (slugify(raw_value) or "product")[:max_length]
         slug = base_slug
         counter = 1
 
@@ -192,7 +193,9 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             queryset = queryset.exclude(pk=self.instance.pk)
 
         while queryset.filter(slug=slug).exists():
-            slug = f"{base_slug}-{counter}"
+            suffix = f"-{counter}"
+            truncated_base = base_slug[: max_length - len(suffix)]
+            slug = f"{truncated_base}{suffix}"
             counter += 1
 
         return slug
