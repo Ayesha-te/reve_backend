@@ -9,3 +9,4 @@ stripe==12.5.1
 requests==2.32.4
 psycopg2-binary
 gunicorn==20.1.0
+setuptools<81
