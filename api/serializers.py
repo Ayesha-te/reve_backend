@@ -143,11 +143,14 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
 class ProductWriteSerializer(serializers.ModelSerializer):
-    slug = serializers.CharField(required=False, allow_blank=True)
+    slug = serializers.CharField(required=False, allow_blank=True, max_length=50)
     images = ProductImageSerializer(many=True, required=False)
     videos = ProductVideoSerializer(many=True, required=False)
     colors = ProductColorSerializer(many=True, required=False)
-    sizes = serializers.ListField(child=serializers.CharField(), required=False)
+    sizes = serializers.ListField(
+        child=serializers.CharField(max_length=50, trim_whitespace=True),
+        required=False,
+    )
     styles = ProductStyleSerializer(many=True, required=False)
     fabrics = ProductFabricSerializer(many=True, required=False)
 
