@@ -135,3 +135,96 @@ class Review(models.Model):
     comment = models.TextField(blank=True)
     approved = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
+
+
+class FilterType(models.Model):
+    """
+    Defines the type of filter (e.g., Bed Size, Colour, Fabric Type)
+    This is the "group" or "category" of filter options
+    """
+    FILTER_DISPLAY_TYPES = [
+        ('checkbox', 'Checkbox List'),
+        ('color_swatch', 'Color Swatch'),
+        ('radio', 'Radio Buttons'),
+        ('dropdown', 'Dropdown Select'),
+    ]
+    
+    name = models.CharField(max_length=100)  # e.g., "Bed Size", "Colour"
+    slug = models.SlugField(unique=True)  # e.g., "bed-size", "colour"
+    display_type = models.CharField(max_length=20, choices=FILTER_DISPLAY_TYPES, default='checkbox')
+    display_order = models.PositiveIntegerField(default=0)  # For ordering filters in sidebar
+    is_active = models.BooleanField(default=True)
+    is_expanded_by_default = models.BooleanField(default=True)  # Show expanded or collapsed
+    
+    class Meta:
+        ordering = ['display_order', 'name']
+    
+    def __str__(self):
+        return self.name
+
+
+class FilterOption(models.Model):
+    """
+    Individual filter options within a FilterType
+    e.g., "Small Single", "Single", "Double" under "Bed Size"
+    """
+    filter_type = models.ForeignKey(FilterType, on_delete=models.CASCADE, related_name='options')
+    name = models.CharField(max_length=100)  # e.g., "Small Single", "Plush Velvet"
+    slug = models.SlugField()  # e.g., "small-single", "plush-velvet"
+    value = models.CharField(max_length=100, blank=True)  # Optional: for special values
+    color_code = models.CharField(max_length=7, blank=True, null=True)  # Hex color for color swatches
+    display_order = models.PositiveIntegerField(default=0)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['display_order', 'name']
+        unique_together = ['filter_type', 'slug']
+    
+    def __str__(self):
+        return f"{self.filter_type.name} - {self.name}"
+
+
+class CategoryFilter(models.Model):
+    """
+    Links FilterTypes to Categories/SubCategories
+    This determines which filters appear on which category pages
+    """
+    category = models.ForeignKey(
+        Category, 
+        on_delete=models.CASCADE, 
+        related_name='category_filters',
+        null=True, 
+        blank=True
+    )
+    subcategory = models.ForeignKey(
+        SubCategory, 
+        on_delete=models.CASCADE, 
+        related_name='subcategory_filters',
+        null=True, 
+        blank=True
+    )
+    filter_type = models.ForeignKey(FilterType, on_delete=models.CASCADE)
+    display_order = models.PositiveIntegerField(default=0)  # Order within this category
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['display_order']
+    
+    def __str__(self):
+        target = self.subcategory.name if self.subcategory else self.category.name
+        return f"{self.filter_type.name} -> {target}"
+
+
+class ProductFilterValue(models.Model):
+    """
+    Links Products to their filter option values
+    A product can have multiple filter options (e.g., available in multiple colors)
+    """
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='filter_values')
+    filter_option = models.ForeignKey(FilterOption, on_delete=models.CASCADE)
+    
+    class Meta:
+        unique_together = ['product', 'filter_option']
+    
+    def __str__(self):
+        return f"{self.product.name} - {self.filter_option}"

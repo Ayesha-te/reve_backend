@@ -14,6 +14,10 @@ from .models import (
     OrderItem,
     Review,
     Collection,
+    FilterType,
+    FilterOption,
+    CategoryFilter,
+    ProductFilterValue,
 )
 
 
@@ -211,4 +215,43 @@ class OrderSerializer(serializers.ModelSerializer):
 class ReviewSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
+        fields = "__all__"
+
+
+class FilterOptionSerializer(serializers.ModelSerializer):
+    product_count = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = FilterOption
+        fields = ['id', 'name', 'slug', 'color_code', 'product_count']
+    
+    def get_product_count(self, obj):
+        # This will be computed based on current category context
+        return getattr(obj, 'product_count', 0)
+
+
+class FilterTypeSerializer(serializers.ModelSerializer):
+    options = FilterOptionSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = FilterType
+        fields = ['id', 'name', 'slug', 'display_type', 'is_expanded_by_default', 'options']
+
+
+class CategoryFilterSerializer(serializers.ModelSerializer):
+    filter_type_name = serializers.ReadOnlyField(source="filter_type.name")
+    category_name = serializers.ReadOnlyField(source="category.name")
+    subcategory_name = serializers.ReadOnlyField(source="subcategory.name")
+    
+    class Meta:
+        model = CategoryFilter
+        fields = "__all__"
+
+
+class ProductFilterValueSerializer(serializers.ModelSerializer):
+    filter_option_name = serializers.ReadOnlyField(source="filter_option.name")
+    filter_type_name = serializers.ReadOnlyField(source="filter_option.filter_type.name")
+    
+    class Meta:
+        model = ProductFilterValue
         fields = "__all__"

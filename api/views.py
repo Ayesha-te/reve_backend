@@ -25,6 +25,10 @@ from .models import (
     OrderItem,
     Review,
     Collection,
+    FilterType,
+    FilterOption,
+    CategoryFilter,
+    ProductFilterValue,
 )
 from .serializers import (
     RegisterSerializer,
@@ -35,6 +39,9 @@ from .serializers import (
     OrderSerializer,
     ReviewSerializer,
     CollectionSerializer,
+    FilterTypeSerializer,
+    CategoryFilterSerializer,
+    ProductFilterValueSerializer,
 )
 
 
@@ -118,6 +125,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         bestseller = self.request.query_params.get("bestseller")
         is_new = self.request.query_params.get("is_new")
         slug = self.request.query_params.get("slug")
+        
         if category:
             queryset = queryset.filter(category__slug=category)
         if subcategory:
@@ -128,6 +136,18 @@ class ProductViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(is_new=True)
         if slug:
             queryset = queryset.filter(slug=slug)
+        
+        # Apply dynamic filters from filter system
+        filter_types = FilterType.objects.filter(is_active=True)
+        for ft in filter_types:
+            filter_values = self.request.query_params.get(ft.slug)
+            if filter_values:
+                option_slugs = filter_values.split(',')
+                queryset = queryset.filter(
+                    filter_values__filter_option__slug__in=option_slugs,
+                    filter_values__filter_option__filter_type=ft
+                ).distinct()
+        
         return queryset
 
     def create(self, request, *args, **kwargs):
@@ -375,3 +395,56 @@ class PaymentViewSet(viewsets.ViewSet):
         if response.status_code >= 400:
             return None
         return response.json().get("access_token")
+
+
+class FilterTypeViewSet(viewsets.ModelViewSet):
+    """ViewSet for managing filter types"""
+    queryset = FilterType.objects.all().order_by('display_order', 'name')
+    serializer_class = FilterTypeSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+
+class CategoryFiltersView(generics.GenericAPIView):
+    """
+    GET /api/categories/{category_slug}/filters/
+    Returns all available filters for a category with product counts
+    """
+    permission_classes = [AllowAny]
+    
+    def get(self, request, category_slug):
+        from django.db.models import Q, Count
+        
+        # Get the category
+        try:
+            category = Category.objects.get(slug=category_slug)
+        except Category.DoesNotExist:
+            return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get filters linked to this category
+        category_filters = CategoryFilter.objects.filter(
+            Q(category=category) | Q(subcategory__category=category),
+            is_active=True
+        ).select_related('filter_type').prefetch_related(
+            'filter_type__options'
+        ).order_by('display_order')
+        
+        # Collect unique filter types
+        filter_types = []
+        seen_ids = set()
+        for cf in category_filters:
+            ft = cf.filter_type
+            if ft.is_active and ft.id not in seen_ids:
+                filter_types.append(ft)
+                seen_ids.add(ft.id)
+        
+        # Annotate with product counts for each option
+        for ft in filter_types:
+            for option in ft.options.filter(is_active=True):
+                option.product_count = ProductFilterValue.objects.filter(
+                    filter_option=option,
+                    product__category=category,
+                    product__in_stock=True
+                ).values('product').distinct().count()
+        
+        serializer = FilterTypeSerializer(filter_types, many=True)
+        return Response({'filters': serializer.data})

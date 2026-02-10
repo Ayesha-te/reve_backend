@@ -12,6 +12,8 @@ from .views import (
     ReviewViewSet,
     UploadViewSet,
     PaymentViewSet,
+    FilterTypeViewSet,
+    CategoryFiltersView,
 )
 
 router = DefaultRouter()
@@ -23,10 +25,12 @@ router.register(r"orders", OrderViewSet)
 router.register(r"reviews", ReviewViewSet)
 router.register(r"uploads", UploadViewSet, basename="uploads")
 router.register(r"payments", PaymentViewSet, basename="payments")
+router.register(r"filter-types", FilterTypeViewSet)
 
 urlpatterns = [
     path("", include(router.urls)),
     path("register/", RegisterView.as_view(), name="register"),
     path("login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("categories/<slug:category_slug>/filters/", CategoryFiltersView.as_view(), name="category-filters"),
 ]
