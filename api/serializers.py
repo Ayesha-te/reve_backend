@@ -118,6 +118,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "description",
             "short_description",
             "features",
+            "faqs",
             "delivery_info",
             "returns_guarantee",
             "delivery_charges",
@@ -164,6 +165,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "description",
             "short_description",
             "features",
+            "faqs",
             "delivery_info",
             "returns_guarantee",
             "delivery_charges",
@@ -180,9 +182,27 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "fabrics",
         )
 
+    def _generate_unique_slug(self, raw_value: str) -> str:
+        base_slug = slugify(raw_value) or "product"
+        slug = base_slug
+        counter = 1
+
+        queryset = Product.objects.all()
+        if self.instance:
+            queryset = queryset.exclude(pk=self.instance.pk)
+
+        while queryset.filter(slug=slug).exists():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        return slug
+
     def validate(self, attrs):
-        if not attrs.get("slug") and attrs.get("name"):
-            attrs["slug"] = slugify(attrs["name"])
+        raw_slug_or_name = attrs.get("slug") or attrs.get("name")
+        if raw_slug_or_name:
+            attrs["slug"] = self._generate_unique_slug(raw_slug_or_name)
+        elif self.instance and self.instance.slug:
+            attrs["slug"] = self._generate_unique_slug(self.instance.slug)
         return attrs
 
 
