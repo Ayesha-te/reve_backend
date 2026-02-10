@@ -200,7 +200,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         for vid in videos:
             ProductVideo.objects.create(product=product, url=vid.get("url"))
         for col in colors:
-            ProductColor.objects.create(product=product, name=col.get("name"), image=col.get("image", ""))
+            ProductColor.objects.create(product=product, name=col.get("name", ""), hex_code=col.get("hex_code", "#000000"))
         for size in sizes:
             ProductSize.objects.create(product=product, name=size)
         for style in styles:

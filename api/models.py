@@ -79,8 +79,11 @@ class ProductVideo(models.Model):
 
 class ProductColor(models.Model):
     product = models.ForeignKey(Product, related_name="colors", on_delete=models.CASCADE)
-    name = models.CharField(max_length=50)
-    image = models.URLField(max_length=1000, blank=True)
+    name = models.CharField(max_length=100)
+    hex_code = models.CharField(max_length=7, default='#000000')
+    
+    class Meta:
+        ordering = ['id']
 
 
 class ProductSize(models.Model):
