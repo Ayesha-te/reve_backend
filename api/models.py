@@ -4,7 +4,7 @@ from django.contrib.auth.models import User
 
 class Category(models.Model):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=255)
     description = models.TextField(blank=True)
     image = models.URLField(max_length=1000, blank=True)
     sort_order = models.IntegerField(default=0)
@@ -16,7 +16,7 @@ class Category(models.Model):
 class SubCategory(models.Model):
     category = models.ForeignKey(Category, related_name="subcategories", on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=255)
     description = models.TextField(blank=True)
     image = models.URLField(max_length=1000, blank=True)
     sort_order = models.IntegerField(default=0)
@@ -27,7 +27,7 @@ class SubCategory(models.Model):
 
 class Collection(models.Model):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=255)
     description = models.TextField(blank=True)
     image = models.URLField(max_length=1000, blank=True)
     sort_order = models.IntegerField(default=0)
@@ -41,7 +41,7 @@ class Collection(models.Model):
 
 class Product(models.Model):
     name = models.CharField(max_length=255)
-    slug = models.SlugField(unique=True)
+    slug = models.SlugField(unique=True, max_length=255)
     category = models.ForeignKey(Category, related_name="products", on_delete=models.CASCADE)
     subcategory = models.ForeignKey(
         SubCategory, related_name="products", on_delete=models.SET_NULL, null=True, blank=True
@@ -163,7 +163,7 @@ class FilterType(models.Model):
     ]
     
     name = models.CharField(max_length=100)  # e.g., "Bed Size", "Colour"
-    slug = models.SlugField(unique=True)  # e.g., "bed-size", "colour"
+    slug = models.SlugField(unique=True, max_length=255)  # e.g., "bed-size", "colour"
     display_type = models.CharField(max_length=20, choices=FILTER_DISPLAY_TYPES, default='checkbox')
     display_order = models.PositiveIntegerField(default=0)  # For ordering filters in sidebar
     is_active = models.BooleanField(default=True)
@@ -183,7 +183,7 @@ class FilterOption(models.Model):
     """
     filter_type = models.ForeignKey(FilterType, on_delete=models.CASCADE, related_name='options')
     name = models.CharField(max_length=100)  # e.g., "Small Single", "Plush Velvet"
-    slug = models.SlugField()  # e.g., "small-single", "plush-velvet"
+    slug = models.SlugField(max_length=255)  # e.g., "small-single", "plush-velvet"
     value = models.CharField(max_length=100, blank=True)  # Optional: for special values
     color_code = models.CharField(max_length=7, blank=True, null=True)  # Hex color for color swatches
     display_order = models.PositiveIntegerField(default=0)
