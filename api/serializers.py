@@ -10,6 +10,7 @@ from .models import (
     ProductColor,
     ProductSize,
     ProductStyle,
+    ProductFabric,
     Order,
     OrderItem,
     Review,
@@ -85,12 +86,19 @@ class ProductStyleSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "options")
 
 
+class ProductFabricSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductFabric
+        fields = ("id", "name", "image_url")
+
+
 class ProductSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
     videos = ProductVideoSerializer(many=True, read_only=True)
     colors = ProductColorSerializer(many=True, read_only=True)
     sizes = ProductSizeSerializer(many=True, read_only=True)
     styles = ProductStyleSerializer(many=True, read_only=True)
+    fabrics = ProductFabricSerializer(many=True, read_only=True)
     category_name = serializers.ReadOnlyField(source="category.name")
     subcategory_name = serializers.ReadOnlyField(source="subcategory.name")
     category_slug = serializers.ReadOnlyField(source="category.slug")
@@ -125,6 +133,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "colors",
             "sizes",
             "styles",
+            "fabrics",
             "category_name",
             "subcategory_name",
             "category_slug",
@@ -139,6 +148,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
     colors = ProductColorSerializer(many=True, required=False)
     sizes = serializers.ListField(child=serializers.CharField(), required=False)
     styles = ProductStyleSerializer(many=True, required=False)
+    fabrics = ProductFabricSerializer(many=True, required=False)
 
     class Meta:
         model = Product
@@ -167,6 +177,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "colors",
             "sizes",
             "styles",
+            "fabrics",
         )
 
     def validate(self, attrs):

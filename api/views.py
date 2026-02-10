@@ -21,6 +21,7 @@ from .models import (
     ProductColor,
     ProductSize,
     ProductStyle,
+    ProductFabric,
     Order,
     OrderItem,
     Review,
@@ -157,12 +158,13 @@ class ProductViewSet(viewsets.ModelViewSet):
         colors = data.pop("colors", [])
         sizes = data.pop("sizes", [])
         styles = data.pop("styles", [])
+        fabrics = data.pop("fabrics", [])
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         product = serializer.save()
 
-        self._handle_related_data(product, images, videos, colors, sizes, styles)
+        self._handle_related_data(product, images, videos, colors, sizes, styles, fabrics)
 
         return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
 
@@ -173,6 +175,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         colors = data.pop("colors", None)
         sizes = data.pop("sizes", None)
         styles = data.pop("styles", None)
+        fabrics = data.pop("fabrics", None)
 
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=data, partial=True)
@@ -189,12 +192,22 @@ class ProductViewSet(viewsets.ModelViewSet):
             product.sizes.all().delete()
         if styles is not None:
             product.styles.all().delete()
+        if fabrics is not None:
+            product.fabrics.all().delete()
 
-        self._handle_related_data(product, images or [], videos or [], colors or [], sizes or [], styles or [])
+        self._handle_related_data(
+            product,
+            images or [],
+            videos or [],
+            colors or [],
+            sizes or [],
+            styles or [],
+            fabrics or [],
+        )
 
         return Response(ProductSerializer(product).data)
 
-    def _handle_related_data(self, product, images, videos, colors, sizes, styles):
+    def _handle_related_data(self, product, images, videos, colors, sizes, styles, fabrics):
         for img in images:
             ProductImage.objects.create(product=product, url=img.get("url"))
         for vid in videos:
@@ -205,6 +218,12 @@ class ProductViewSet(viewsets.ModelViewSet):
             ProductSize.objects.create(product=product, name=size)
         for style in styles:
             ProductStyle.objects.create(product=product, name=style.get("name"), options=style.get("options", []))
+        for fabric in fabrics:
+            ProductFabric.objects.create(
+                product=product,
+                name=fabric.get("name", ""),
+                image_url=fabric.get("image_url", ""),
+            )
 
 
 class OrderViewSet(viewsets.ModelViewSet):

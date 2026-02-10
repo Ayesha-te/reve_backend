@@ -97,6 +97,15 @@ class ProductStyle(models.Model):
     options = models.JSONField(default=list)
 
 
+class ProductFabric(models.Model):
+    product = models.ForeignKey(Product, related_name="fabrics", on_delete=models.CASCADE)
+    name = models.CharField(max_length=100)
+    image_url = models.URLField(max_length=1000)
+
+    class Meta:
+        ordering = ["id"]
+
+
 class Order(models.Model):
     STATUS_CHOICES = [
         ("pending", "Pending"),
