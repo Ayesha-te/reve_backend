@@ -10,6 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.exceptions import ValidationError
 
 from supabase import create_client
 
@@ -168,6 +169,10 @@ class ProductViewSet(viewsets.ModelViewSet):
         styles = data.pop("styles", [])
         fabrics = data.pop("fabrics", [])
 
+        images, videos, colors, sizes, styles, fabrics = self._validate_related_data(
+            images, videos, colors, sizes, styles, fabrics
+        )
+
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
         product = serializer.save()
@@ -184,6 +189,10 @@ class ProductViewSet(viewsets.ModelViewSet):
         sizes = data.pop("sizes", None)
         styles = data.pop("styles", None)
         fabrics = data.pop("fabrics", None)
+
+        images, videos, colors, sizes, styles, fabrics = self._validate_related_data(
+            images or [], videos or [], colors or [], sizes or [], styles or [], fabrics or []
+        )
 
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=data, partial=True)
@@ -232,6 +241,76 @@ class ProductViewSet(viewsets.ModelViewSet):
                 name=fabric.get("name", ""),
                 image_url=fabric.get("image_url", ""),
             )
+
+    def _validate_related_data(self, images, videos, colors, sizes, styles, fabrics):
+        image_url_max = ProductImage._meta.get_field("url").max_length
+        video_url_max = ProductVideo._meta.get_field("url").max_length
+        color_name_max = ProductColor._meta.get_field("name").max_length
+        size_name_max = ProductSize._meta.get_field("name").max_length
+        style_name_max = ProductStyle._meta.get_field("name").max_length
+        fabric_name_max = ProductFabric._meta.get_field("name").max_length
+        fabric_url_max = ProductFabric._meta.get_field("image_url").max_length
+
+        cleaned_images = []
+        for img in images:
+            url = str((img or {}).get("url", "")).strip()
+            if not url:
+                continue
+            if len(url) > image_url_max:
+                raise ValidationError({"images": [f"Image URL too long (max {image_url_max} chars)."]})
+            cleaned_images.append({"url": url})
+
+        cleaned_videos = []
+        for vid in videos:
+            url = str((vid or {}).get("url", "")).strip()
+            if not url:
+                continue
+            if len(url) > video_url_max:
+                raise ValidationError({"videos": [f"Video URL too long (max {video_url_max} chars)."]})
+            cleaned_videos.append({"url": url})
+
+        cleaned_colors = []
+        for col in colors:
+            name = str((col or {}).get("name", "")).strip()
+            if not name:
+                continue
+            if len(name) > color_name_max:
+                raise ValidationError({"colors": [f"Color name too long (max {color_name_max} chars)."]})
+            hex_code = str((col or {}).get("hex_code", "#000000")).strip() or "#000000"
+            cleaned_colors.append({"name": name, "hex_code": hex_code})
+
+        cleaned_sizes = []
+        for size in sizes:
+            value = str(size).strip()
+            if not value:
+                continue
+            if len(value) > size_name_max:
+                raise ValidationError({"sizes": [f"Size value too long (max {size_name_max} chars)."]})
+            cleaned_sizes.append(value)
+
+        cleaned_styles = []
+        for style in styles:
+            name = str((style or {}).get("name", "")).strip()
+            if not name:
+                continue
+            if len(name) > style_name_max:
+                raise ValidationError({"styles": [f"Style name too long (max {style_name_max} chars)."]})
+            options = (style or {}).get("options", [])
+            cleaned_styles.append({"name": name, "options": options if isinstance(options, list) else []})
+
+        cleaned_fabrics = []
+        for fabric in fabrics:
+            name = str((fabric or {}).get("name", "")).strip()
+            image_url = str((fabric or {}).get("image_url", "")).strip()
+            if not name and not image_url:
+                continue
+            if len(name) > fabric_name_max:
+                raise ValidationError({"fabrics": [f"Fabric name too long (max {fabric_name_max} chars)."]})
+            if len(image_url) > fabric_url_max:
+                raise ValidationError({"fabrics": [f"Fabric image URL too long (max {fabric_url_max} chars)."]})
+            cleaned_fabrics.append({"name": name, "image_url": image_url})
+
+        return cleaned_images, cleaned_videos, cleaned_colors, cleaned_sizes, cleaned_styles, cleaned_fabrics
 
 
 class OrderViewSet(viewsets.ModelViewSet):
