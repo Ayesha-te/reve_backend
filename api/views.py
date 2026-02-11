@@ -34,6 +34,8 @@ from .models import (
     FilterOption,
     CategoryFilter,
     ProductFilterValue,
+    DimensionTemplate,
+    ProductDimensionTemplate,
 )
 from .serializers import (
     RegisterSerializer,
@@ -170,6 +172,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         sizes = data.pop("sizes", [])
         styles = data.pop("styles", [])
         fabrics = data.pop("fabrics", [])
+        filter_values = data.pop("filter_values", [])
 
         images, videos, colors, sizes, styles, fabrics = self._validate_related_data(
             images, videos, colors, sizes, styles, fabrics
@@ -180,6 +183,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         product = serializer.save()
 
         self._handle_related_data(product, images, videos, colors, sizes, styles, fabrics)
+        self._handle_filter_values(product, filter_values)
+        self._handle_dimension_template(product, serializer.validated_data.get("_dimension_template_obj"))
 
         return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
 
@@ -191,6 +196,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         sizes = data.pop("sizes", None)
         styles = data.pop("styles", None)
         fabrics = data.pop("fabrics", None)
+        filter_values = data.pop("filter_values", None)
 
         images, videos, colors, sizes, styles, fabrics = self._validate_related_data(
             images or [], videos or [], colors or [], sizes or [], styles or [], fabrics or []
@@ -223,6 +229,10 @@ class ProductViewSet(viewsets.ModelViewSet):
             styles or [],
             fabrics or [],
         )
+        if filter_values is not None:
+            self._handle_filter_values(product, filter_values)
+
+        self._handle_dimension_template(product, serializer.validated_data.get("_dimension_template_obj"))
 
         return Response(ProductSerializer(product).data)
 
@@ -234,7 +244,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         for col in colors:
             ProductColor.objects.create(product=product, name=col.get("name", ""), hex_code=col.get("hex_code", "#000000"))
         for size in sizes:
-            ProductSize.objects.create(product=product, name=size)
+            ProductSize.objects.create(
+                product=product,
+                name=size.get("name", ""),
+                description=size.get("description", ""),
+            )
         for style in styles:
             ProductStyle.objects.create(product=product, name=style.get("name"), options=style.get("options", []))
         for fabric in fabrics:
@@ -249,6 +263,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         video_url_max = ProductVideo._meta.get_field("url").max_length
         color_name_max = ProductColor._meta.get_field("name").max_length
         size_name_max = ProductSize._meta.get_field("name").max_length
+        size_desc_max = ProductSize._meta.get_field("description").max_length
         style_name_max = ProductStyle._meta.get_field("name").max_length
         fabric_name_max = ProductFabric._meta.get_field("name").max_length
         fabric_url_max = ProductFabric._meta.get_field("image_url").max_length
@@ -283,12 +298,20 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         cleaned_sizes = []
         for size in sizes:
-            value = str(size).strip()
+            if isinstance(size, dict):
+                value = str(size.get("name", "")).strip()
+                description = str(size.get("description", "")).strip()
+            else:
+                value = str(size).strip()
+                description = ""
+
             if not value:
                 continue
             if len(value) > size_name_max:
                 raise ValidationError({"sizes": [f"Size value too long (max {size_name_max} chars)."]})
-            cleaned_sizes.append(value)
+            if len(description) > size_desc_max:
+                raise ValidationError({"sizes": [f"Size description too long (max {size_desc_max} chars)."]})
+            cleaned_sizes.append({"name": value, "description": description})
 
         cleaned_styles = []
         for style in styles:
@@ -313,6 +336,30 @@ class ProductViewSet(viewsets.ModelViewSet):
             cleaned_fabrics.append({"name": name, "image_url": image_url})
 
         return cleaned_images, cleaned_videos, cleaned_colors, cleaned_sizes, cleaned_styles, cleaned_fabrics
+
+    def _handle_filter_values(self, product, filter_values):
+        product.filter_values.all().delete()
+        cleaned = []
+        for fv in filter_values or []:
+            opt_id = fv.get("filter_option") if isinstance(fv, dict) else fv
+            if not opt_id:
+                continue
+            try:
+                option = FilterOption.objects.get(id=opt_id)
+            except FilterOption.DoesNotExist:
+                continue
+            cleaned.append(option)
+        for option in cleaned:
+            ProductFilterValue.objects.create(product=product, filter_option=option)
+
+    def _handle_dimension_template(self, product, dimension_template_obj):
+        # Remove existing link if cleared
+        if dimension_template_obj is None:
+            ProductDimensionTemplate.objects.filter(product=product).delete()
+            return
+        link, _ = ProductDimensionTemplate.objects.get_or_create(product=product)
+        link.template = dimension_template_obj
+        link.save()
 
 
 class OrderViewSet(viewsets.ModelViewSet):
@@ -545,6 +592,16 @@ class FilterTypeViewSet(viewsets.ModelViewSet):
     queryset = FilterType.objects.all().order_by('display_order', 'name')
     serializer_class = FilterTypeSerializer
     permission_classes = [IsAdminOrReadOnly]
+
+
+class DimensionTemplateViewSet(viewsets.ModelViewSet):
+    queryset = DimensionTemplate.objects.all().order_by("name")
+    serializer_class = FilterTypeSerializer  # placeholder, set below
+    permission_classes = [IsAdminOrReadOnly]
+
+    def get_serializer_class(self):
+        from .serializers import DimensionTemplateSerializer
+        return DimensionTemplateSerializer
 
 
 class CategoryFiltersView(generics.GenericAPIView):

@@ -1,0 +1,16 @@
+from django.db import migrations, models
+
+
+class Migration(migrations.Migration):
+
+    dependencies = [
+        ("api", "0008_alter_category_slug_alter_collection_slug_and_more"),
+    ]
+
+    operations = [
+        migrations.AddField(
+            model_name="productsize",
+            name="description",
+            field=models.CharField(blank=True, max_length=255),
+        ),
+    ]

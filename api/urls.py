@@ -14,6 +14,7 @@ from .views import (
     UploadViewSet,
     PaymentViewSet,
     FilterTypeViewSet,
+    DimensionTemplateViewSet,
     CategoryFiltersView,
 )
 
@@ -27,6 +28,7 @@ router.register(r"reviews", ReviewViewSet)
 router.register(r"uploads", UploadViewSet, basename="uploads")
 router.register(r"payments", PaymentViewSet, basename="payments")
 router.register(r"filter-types", FilterTypeViewSet)
+router.register(r"dimension-templates", DimensionTemplateViewSet)
 
 urlpatterns = [
     path("health/", HealthCheckView.as_view(), name="health"),

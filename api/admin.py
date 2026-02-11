@@ -16,6 +16,9 @@ from .models import (
     FilterOption,
     CategoryFilter,
     ProductFilterValue,
+    DimensionTemplate,
+    DimensionRow,
+    ProductDimensionTemplate,
 )
 
 
@@ -52,6 +55,7 @@ class ProductColorInline(admin.TabularInline):
 class ProductSizeInline(admin.TabularInline):
     model = ProductSize
     extra = 0
+    fields = ["name", "description"]
 
 
 class ProductStyleInline(admin.TabularInline):
@@ -105,14 +109,14 @@ class CollectionAdmin(admin.ModelAdmin):
 class FilterOptionInline(admin.TabularInline):
     model = FilterOption
     extra = 3
-    fields = ['name', 'slug', 'color_code', 'display_order', 'is_active']
+    fields = ['name', 'slug', 'color_code', 'icon_url', 'price_delta', 'is_wingback', 'display_order', 'is_active']
     prepopulated_fields = {'slug': ('name',)}
 
 
 @admin.register(FilterType)
 class FilterTypeAdmin(admin.ModelAdmin):
-    list_display = ['name', 'slug', 'display_type', 'display_order', 'is_active', 'is_expanded_by_default']
-    list_filter = ['display_type', 'is_active']
+    list_display = ['name', 'slug', 'display_type', 'display_order', 'is_active', 'is_default', 'is_expanded_by_default']
+    list_filter = ['display_type', 'is_active', 'is_default']
     search_fields = ['name', 'slug']
     prepopulated_fields = {'slug': ('name',)}
     inlines = [FilterOptionInline]
@@ -121,7 +125,7 @@ class FilterTypeAdmin(admin.ModelAdmin):
 
 @admin.register(FilterOption)
 class FilterOptionAdmin(admin.ModelAdmin):
-    list_display = ['name', 'filter_type', 'slug', 'color_code', 'display_order', 'is_active']
+    list_display = ['name', 'filter_type', 'slug', 'color_code', 'icon_url', 'price_delta', 'is_wingback', 'display_order', 'is_active']
     list_filter = ['filter_type', 'is_active']
     search_fields = ['name', 'slug', 'filter_type__name']
     prepopulated_fields = {'slug': ('name',)}
@@ -142,3 +146,26 @@ class ProductFilterValueAdmin(admin.ModelAdmin):
     list_filter = ['filter_option__filter_type']
     search_fields = ['product__name', 'filter_option__name']
     autocomplete_fields = ['product', 'filter_option']
+
+
+# Dimension templates
+class DimensionRowInline(admin.TabularInline):
+    model = DimensionRow
+    extra = 1
+    fields = ['measurement', 'values', 'display_order']
+
+
+@admin.register(DimensionTemplate)
+class DimensionTemplateAdmin(admin.ModelAdmin):
+    list_display = ['name', 'slug', 'is_default', 'updated_at']
+    list_filter = ['is_default']
+    prepopulated_fields = {'slug': ('name',)}
+    search_fields = ['name', 'slug']
+    inlines = [DimensionRowInline]
+
+
+@admin.register(ProductDimensionTemplate)
+class ProductDimensionTemplateAdmin(admin.ModelAdmin):
+    list_display = ['product', 'template', 'allow_overrides']
+    autocomplete_fields = ['product', 'template']
+    search_fields = ['product__name', 'template__name']

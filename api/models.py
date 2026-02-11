@@ -52,6 +52,7 @@ class Product(models.Model):
     description = models.TextField()
     short_description = models.TextField(blank=True)
     features = models.JSONField(default=list, blank=True)
+    dimensions = models.JSONField(default=list, blank=True)
     faqs = models.JSONField(default=list, blank=True)
     delivery_info = models.TextField(blank=True)
     returns_guarantee = models.TextField(blank=True)
@@ -90,6 +91,7 @@ class ProductColor(models.Model):
 class ProductSize(models.Model):
     product = models.ForeignKey(Product, related_name="sizes", on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
+    description = models.CharField(max_length=255, blank=True)
 
 
 class ProductStyle(models.Model):
@@ -168,6 +170,9 @@ class FilterType(models.Model):
     display_order = models.PositiveIntegerField(default=0)  # For ordering filters in sidebar
     is_active = models.BooleanField(default=True)
     is_expanded_by_default = models.BooleanField(default=True)  # Show expanded or collapsed
+    icon_url = models.URLField(max_length=1000, blank=True, default="")  # SVG or image used in UI
+    display_hint = models.CharField(max_length=255, blank=True, default="")  # short helper text
+    is_default = models.BooleanField(default=False)  # lets admin flag Size / Price, etc., for priority UI
     
     class Meta:
         ordering = ['display_order', 'name']
@@ -188,6 +193,10 @@ class FilterOption(models.Model):
     color_code = models.CharField(max_length=7, blank=True, null=True)  # Hex color for color swatches
     display_order = models.PositiveIntegerField(default=0)
     is_active = models.BooleanField(default=True)
+    icon_url = models.URLField(max_length=1000, blank=True, default="")  # SVG/icon
+    price_delta = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    is_wingback = models.BooleanField(default=False)  # width +4cm note
+    metadata = models.JSONField(default=dict, blank=True)  # free-form option metadata
     
     class Meta:
         ordering = ['display_order', 'name']
@@ -241,3 +250,42 @@ class ProductFilterValue(models.Model):
     
     def __str__(self):
         return f"{self.product.name} - {self.filter_option}"
+
+
+# Dimension templates & rows allow reusable size charts per product
+class DimensionTemplate(models.Model):
+    name = models.CharField(max_length=150)
+    slug = models.SlugField(unique=True, max_length=255)
+    notes = models.TextField(blank=True, default="")
+    is_default = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class DimensionRow(models.Model):
+    template = models.ForeignKey(DimensionTemplate, related_name="rows", on_delete=models.CASCADE)
+    measurement = models.CharField(max_length=100)  # e.g., Length, Width
+    values = models.JSONField(default=dict, blank=True)  # {"3ft Single": "215 cm (84.6\")", ...}
+    display_order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["display_order", "id"]
+
+    def __str__(self):
+        return f"{self.template.name}: {self.measurement}"
+
+
+# Direct link from product to a dimension template (can still override via Product.dimensions)
+class ProductDimensionTemplate(models.Model):
+    product = models.OneToOneField(Product, related_name="dimension_template_link", on_delete=models.CASCADE)
+    template = models.ForeignKey(DimensionTemplate, related_name="product_links", on_delete=models.CASCADE)
+    allow_overrides = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.product.name} -> {self.template.name}"
