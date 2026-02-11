@@ -1,6 +1,7 @@
 import uuid
 import stripe
 import requests
+from urllib.parse import urljoin
 
 from django.conf import settings
 from django.contrib.auth.models import User
@@ -387,6 +388,31 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class UploadViewSet(viewsets.ViewSet):
     permission_classes = [IsAdminUser]
 
+    def _extract_public_url(self, value):
+        if isinstance(value, str):
+            return value
+        if isinstance(value, dict):
+            for key in ("url", "publicUrl", "publicURL", "signedUrl", "signedURL"):
+                candidate = value.get(key)
+                if isinstance(candidate, str):
+                    return candidate
+            data = value.get("data")
+            if isinstance(data, dict):
+                for key in ("url", "publicUrl", "publicURL", "signedUrl", "signedURL"):
+                    candidate = data.get(key)
+                    if isinstance(candidate, str):
+                        return candidate
+        if hasattr(value, "data") and isinstance(value.data, dict):
+            for key in ("url", "publicUrl", "publicURL", "signedUrl", "signedURL"):
+                candidate = value.data.get(key)
+                if isinstance(candidate, str):
+                    return candidate
+        if hasattr(value, "model_dump"):
+            dumped = value.model_dump()
+            if isinstance(dumped, dict):
+                return self._extract_public_url(dumped)
+        return None
+
     def create(self, request):
         if "file" not in request.FILES:
             return Response({"error": "file is required"}, status=status.HTTP_400_BAD_REQUEST)
@@ -404,7 +430,14 @@ class UploadViewSet(viewsets.ViewSet):
         if hasattr(upload_result, "error") and upload_result.error:
             return Response({"error": str(upload_result.error)}, status=status.HTTP_400_BAD_REQUEST)
 
-        public_url = supabase.storage.from_(bucket).get_public_url(file_name)
+        public_url_raw = supabase.storage.from_(bucket).get_public_url(file_name)
+        public_url = self._extract_public_url(public_url_raw)
+        if not public_url:
+            return Response({"error": "Unable to determine public file URL"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        if public_url.startswith("/"):
+            public_url = urljoin(settings.SUPABASE_URL.rstrip("/") + "/", public_url.lstrip("/"))
+
         return Response({"url": public_url})
 
 
