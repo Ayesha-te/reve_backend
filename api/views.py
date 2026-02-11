@@ -1,4 +1,5 @@
 import uuid
+import os
 import stripe
 import requests
 from urllib.parse import urljoin
@@ -418,7 +419,10 @@ class UploadViewSet(viewsets.ViewSet):
             return Response({"error": "file is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         file_obj = request.FILES["file"]
-        file_name = f"{uuid.uuid4().hex}-{file_obj.name}"
+        base_name, ext = os.path.splitext(file_obj.name or "")
+        safe_base = slugify(base_name) or "upload"
+        safe_ext = (ext or "").lower()
+        file_name = f"{uuid.uuid4().hex}-{safe_base}{safe_ext}"
 
         supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
         bucket = settings.SUPABASE_BUCKET
