@@ -168,6 +168,73 @@ class ProductSerializer(serializers.ModelSerializer):
             "subcategory_slug",
         )
 
+    def get_filters(self, obj):
+        values = ProductFilterValue.objects.filter(product=obj).select_related("filter_option__filter_type")
+        by_type = {}
+        for val in values:
+            ft = val.filter_option.filter_type
+            if ft.id not in by_type:
+                by_type[ft.id] = {
+                    "id": ft.id,
+                    "name": ft.name,
+                    "slug": ft.slug,
+                    "display_type": ft.display_type,
+                    "icon_url": ft.icon_url,
+                    "display_hint": ft.display_hint,
+                    "is_default": ft.is_default,
+                    "is_expanded_by_default": ft.is_expanded_by_default,
+                    "options": [],
+                }
+            opt = val.filter_option
+            by_type[ft.id]["options"].append({
+                "id": opt.id,
+                "name": opt.name,
+                "slug": opt.slug,
+                "color_code": opt.color_code,
+                "icon_url": opt.icon_url,
+                "price_delta": opt.price_delta,
+                "is_wingback": opt.is_wingback,
+                "metadata": opt.metadata,
+            })
+        # preserve display order: defaults first, then name
+        ordered = sorted(by_type.values(), key=lambda item: (0 if item["is_default"] else 1, item["name"]))
+        return ordered
+
+    def get_dimension_template(self, obj):
+        if hasattr(obj, "dimension_template_link"):
+            return obj.dimension_template_link.template.id
+        return None
+
+    def get_dimension_template_name(self, obj):
+        if hasattr(obj, "dimension_template_link"):
+            return obj.dimension_template_link.template.name
+        return ""
+
+    def _merge_dimensions(self, obj):
+        template_rows = []
+        if hasattr(obj, "dimension_template_link"):
+            template_rows = list(obj.dimension_template_link.template.rows.all().order_by("display_order"))
+        override_rows = obj.dimensions or []
+        merged = []
+        # map for quick override lookup
+        override_map = {row.get("measurement"): row.get("values", {}) for row in override_rows if isinstance(row, dict)}
+        for row in template_rows:
+            values = dict(row.values or {})
+            if row.measurement in override_map:
+                values.update({k: v for k, v in override_map[row.measurement].items() if v})
+            merged.append({"measurement": row.measurement, "values": values})
+        # Add overrides that weren't in template
+        for measurement, values in override_map.items():
+            if not any(r["measurement"] == measurement for r in merged):
+                merged.append({"measurement": measurement, "values": values})
+        return merged
+
+    def get_computed_dimensions(self, obj):
+        return self._merge_dimensions(obj)
+
+    def get_wingback_width_delta_cm(self, obj):
+        return 4  # requirement: wingback headboard adds approx 4 cm width
+
 
 class ProductWriteSerializer(serializers.ModelSerializer):
     slug = serializers.CharField(required=False, allow_blank=True, max_length=50)
@@ -284,73 +351,6 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         elif dt_id is None:
             attrs["_dimension_template_obj"] = None
         return attrs
-
-    def get_filters(self, obj):
-        values = ProductFilterValue.objects.filter(product=obj).select_related("filter_option__filter_type")
-        by_type = {}
-        for val in values:
-            ft = val.filter_option.filter_type
-            if ft.id not in by_type:
-                by_type[ft.id] = {
-                    "id": ft.id,
-                    "name": ft.name,
-                    "slug": ft.slug,
-                    "display_type": ft.display_type,
-                    "icon_url": ft.icon_url,
-                    "display_hint": ft.display_hint,
-                    "is_default": ft.is_default,
-                    "is_expanded_by_default": ft.is_expanded_by_default,
-                    "options": [],
-                }
-            opt = val.filter_option
-            by_type[ft.id]["options"].append({
-                "id": opt.id,
-                "name": opt.name,
-                "slug": opt.slug,
-                "color_code": opt.color_code,
-                "icon_url": opt.icon_url,
-                "price_delta": opt.price_delta,
-                "is_wingback": opt.is_wingback,
-                "metadata": opt.metadata,
-            })
-        # preserve display order
-        ordered = sorted(by_type.values(), key=lambda item: (0 if item["is_default"] else 1, item["name"]))
-        return ordered
-
-    def get_dimension_template(self, obj):
-        if hasattr(obj, "dimension_template_link"):
-            return obj.dimension_template_link.template.id
-        return None
-
-    def get_dimension_template_name(self, obj):
-        if hasattr(obj, "dimension_template_link"):
-            return obj.dimension_template_link.template.name
-        return ""
-
-    def _merge_dimensions(self, obj):
-        template_rows = []
-        if hasattr(obj, "dimension_template_link"):
-            template_rows = list(obj.dimension_template_link.template.rows.all().order_by("display_order"))
-        override_rows = obj.dimensions or []
-        merged = []
-        # map for quick override lookup
-        override_map = {row.get("measurement"): row.get("values", {}) for row in override_rows if isinstance(row, dict)}
-        for row in template_rows:
-            values = dict(row.values or {})
-            if row.measurement in override_map:
-                values.update({k: v for k, v in override_map[row.measurement].items() if v})
-            merged.append({"measurement": row.measurement, "values": values})
-        # Add overrides that weren't in template
-        for measurement, values in override_map.items():
-            if not any(r["measurement"] == measurement for r in merged):
-                merged.append({"measurement": measurement, "values": values})
-        return merged
-
-    def get_computed_dimensions(self, obj):
-        return self._merge_dimensions(obj)
-
-    def get_wingback_width_delta_cm(self, obj):
-        return 4  # requirement: wingback headboard adds approx 4 cm width
 
 
 class CollectionSerializer(serializers.ModelSerializer):
