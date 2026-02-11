@@ -244,6 +244,7 @@ class ProductSerializer(serializers.ModelSerializer):
 # Lighter serializer for list views to keep responses smaller
 class ProductListSerializer(serializers.ModelSerializer):
     images = ProductImageSerializer(many=True, read_only=True)
+    sizes = ProductSizeSerializer(many=True, read_only=True)
     price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     original_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
     rating = serializers.DecimalField(max_digits=3, decimal_places=1, read_only=True)
@@ -266,6 +267,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "rating",
             "review_count",
             "images",
+            "sizes",
             "category_slug",
             "subcategory_slug",
         ]

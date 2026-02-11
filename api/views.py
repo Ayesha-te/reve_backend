@@ -142,7 +142,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
 
     def get_serializer_class(self):
-        if self.action == "list":
+        if self.action == "list" and not self.request.query_params.get("slug"):
             from .serializers import ProductListSerializer
             return ProductListSerializer
         if self.request.method in ("POST", "PUT", "PATCH"):
