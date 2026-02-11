@@ -7,6 +7,7 @@ from urllib.parse import urljoin
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.text import slugify
+from django.db.models import Prefetch
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -124,7 +125,20 @@ class CollectionViewSet(viewsets.ModelViewSet):
 
 
 class ProductViewSet(viewsets.ModelViewSet):
-    queryset = Product.objects.all().order_by("-created_at")
+    queryset = Product.objects.all().select_related("category", "subcategory").prefetch_related(
+        "images",
+        "videos",
+        "colors",
+        "sizes",
+        "styles",
+        "fabrics",
+        Prefetch(
+            "filter_values",
+            queryset=ProductFilterValue.objects.select_related("filter_option__filter_type"),
+            to_attr="filter_values_all",
+        ),
+        "dimension_template_link__template__rows",
+    ).order_by("-created_at")
     permission_classes = [IsAdminOrReadOnly]
 
     def get_serializer_class(self):

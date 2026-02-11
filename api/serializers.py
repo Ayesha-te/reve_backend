@@ -169,7 +169,12 @@ class ProductSerializer(serializers.ModelSerializer):
         )
 
     def get_filters(self, obj):
-        values = ProductFilterValue.objects.filter(product=obj).select_related("filter_option__filter_type")
+        # use prefetched data when available to avoid N+1
+        values = getattr(obj, "filter_values_all", None)
+        if values is None:
+            values = ProductFilterValue.objects.filter(product=obj).select_related("filter_option__filter_type")
+        else:
+            values = list(values)
         by_type = {}
         for val in values:
             ft = val.filter_option.filter_type
