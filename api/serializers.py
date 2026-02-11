@@ -387,6 +387,16 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             attrs["_dimension_template_obj"] = None
         return attrs
 
+    def create(self, validated_data):
+        # Internal helper used by the view; not a Product model field.
+        validated_data.pop("_dimension_template_obj", None)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        # Internal helper used by the view; not a Product model field.
+        validated_data.pop("_dimension_template_obj", None)
+        return super().update(instance, validated_data)
+
 
 class CollectionSerializer(serializers.ModelSerializer):
     slug = serializers.CharField(required=False, allow_blank=True)

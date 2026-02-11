@@ -197,11 +197,12 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(data=data)
         serializer.is_valid(raise_exception=True)
+        dimension_template_obj = serializer.validated_data.get("_dimension_template_obj")
         product = serializer.save()
 
         self._handle_related_data(product, images, videos, colors, sizes, styles, fabrics)
         self._handle_filter_values(product, filter_values)
-        self._handle_dimension_template(product, serializer.validated_data.get("_dimension_template_obj"))
+        self._handle_dimension_template(product, dimension_template_obj)
 
         return Response(ProductSerializer(product).data, status=status.HTTP_201_CREATED)
 
@@ -222,6 +223,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=data, partial=True)
         serializer.is_valid(raise_exception=True)
+        dimension_template_obj = serializer.validated_data.get("_dimension_template_obj")
         product = serializer.save()
 
         if images is not None:
@@ -249,7 +251,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         if filter_values is not None:
             self._handle_filter_values(product, filter_values)
 
-        self._handle_dimension_template(product, serializer.validated_data.get("_dimension_template_obj"))
+        self._handle_dimension_template(product, dimension_template_obj)
 
         return Response(ProductSerializer(product).data)
 
