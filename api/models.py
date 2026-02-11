@@ -97,6 +97,7 @@ class ProductSize(models.Model):
 class ProductStyle(models.Model):
     product = models.ForeignKey(Product, related_name="styles", on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
+    icon_url = models.URLField(max_length=1000, blank=True, default="")
     options = models.JSONField(default=list)
 
 

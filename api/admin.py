@@ -61,6 +61,7 @@ class ProductSizeInline(admin.TabularInline):
 class ProductStyleInline(admin.TabularInline):
     model = ProductStyle
     extra = 0
+    fields = ["name", "icon_url", "options"]
 
 
 class ProductFilterValueInline(admin.TabularInline):
