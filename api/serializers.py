@@ -204,6 +204,24 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         return slug
 
     def validate(self, attrs):
+        description = attrs.get("description", getattr(self.instance, "description", ""))
+        short_description = attrs.get("short_description", getattr(self.instance, "short_description", ""))
+
+        if isinstance(description, str):
+            description = description.strip()
+            attrs["description"] = description
+
+        if isinstance(short_description, str):
+            short_description = short_description.strip()
+
+        if not short_description and isinstance(description, str) and description:
+            first_sentence = description.split(".")[0].strip()
+            short_description = first_sentence or description
+            if len(short_description) > 220:
+                short_description = f"{short_description[:217].rstrip()}..."
+
+        attrs["short_description"] = short_description or ""
+
         raw_slug_or_name = attrs.get("slug") or attrs.get("name")
         if raw_slug_or_name:
             attrs["slug"] = self._generate_unique_slug(raw_slug_or_name)

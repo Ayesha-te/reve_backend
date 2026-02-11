@@ -69,7 +69,7 @@ class ProductFilterValueInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     list_display = ("name", "category", "price", "in_stock", "is_bestseller", "is_new")
     list_filter = ("category", "in_stock", "is_bestseller", "is_new")
-    search_fields = ["name", "slug"]
+    search_fields = ["name", "slug", "short_description", "description"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [ProductImageInline, ProductVideoInline, ProductColorInline, ProductSizeInline, ProductStyleInline, ProductFilterValueInline]
 
