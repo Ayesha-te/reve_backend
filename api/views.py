@@ -142,6 +142,9 @@ class ProductViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
 
     def get_serializer_class(self):
+        if self.action == "list":
+            from .serializers import ProductListSerializer
+            return ProductListSerializer
         if self.request.method in ("POST", "PUT", "PATCH"):
             return ProductWriteSerializer
         return ProductSerializer

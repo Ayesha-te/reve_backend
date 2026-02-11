@@ -241,6 +241,36 @@ class ProductSerializer(serializers.ModelSerializer):
         return 4  # requirement: wingback headboard adds approx 4 cm width
 
 
+# Lighter serializer for list views to keep responses smaller
+class ProductListSerializer(serializers.ModelSerializer):
+    images = ProductImageSerializer(many=True, read_only=True)
+    price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    original_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    rating = serializers.DecimalField(max_digits=3, decimal_places=1, read_only=True)
+    review_count = serializers.IntegerField(read_only=True)
+    category_slug = serializers.ReadOnlyField(source="category.slug")
+    subcategory_slug = serializers.ReadOnlyField(source="subcategory.slug")
+
+    class Meta:
+        model = Product
+        fields = [
+            "id",
+            "name",
+            "slug",
+            "price",
+            "original_price",
+            "discount_percentage",
+            "in_stock",
+            "is_bestseller",
+            "is_new",
+            "rating",
+            "review_count",
+            "images",
+            "category_slug",
+            "subcategory_slug",
+        ]
+
+
 class ProductWriteSerializer(serializers.ModelSerializer):
     slug = serializers.CharField(required=False, allow_blank=True, max_length=50)
     images = ProductImageSerializer(many=True, required=False)
