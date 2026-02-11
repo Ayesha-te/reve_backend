@@ -85,7 +85,7 @@ class ProductSizeSerializer(serializers.ModelSerializer):
 class ProductStyleSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductStyle
-        fields = ("id", "name", "options")
+        fields = ("id", "name", "icon_url", "options")
 
 
 class ProductFabricSerializer(serializers.ModelSerializer):

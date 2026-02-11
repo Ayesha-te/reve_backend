@@ -267,7 +267,12 @@ class ProductViewSet(viewsets.ModelViewSet):
                 description=size.get("description", ""),
             )
         for style in styles:
-            ProductStyle.objects.create(product=product, name=style.get("name"), options=style.get("options", []))
+            ProductStyle.objects.create(
+                product=product,
+                name=style.get("name"),
+                icon_url=style.get("icon_url", ""),
+                options=style.get("options", []),
+            )
         for fabric in fabrics:
             ProductFabric.objects.create(
                 product=product,
@@ -331,14 +336,38 @@ class ProductViewSet(viewsets.ModelViewSet):
             cleaned_sizes.append({"name": value, "description": description})
 
         cleaned_styles = []
+        max_style_option_icon_length = 200000  # allow inline SVG but block payload explosions
         for style in styles:
             name = str((style or {}).get("name", "")).strip()
             if not name:
                 continue
             if len(name) > style_name_max:
                 raise ValidationError({"styles": [f"Style name too long (max {style_name_max} chars)."]})
+            style_icon = str((style or {}).get("icon_url", "")).strip()
+            if len(style_icon) > max_style_option_icon_length:
+                raise ValidationError({"styles": [f"Style icon is too large (max {max_style_option_icon_length} chars)."]})
+
             options = (style or {}).get("options", [])
-            cleaned_styles.append({"name": name, "options": options if isinstance(options, list) else []})
+            normalized_options = []
+            if isinstance(options, list):
+                for option in options:
+                    if isinstance(option, str):
+                        label = option.strip()
+                        if label:
+                            normalized_options.append({"label": label, "description": "", "icon_url": ""})
+                        continue
+                    if not isinstance(option, dict):
+                        continue
+                    label = str(option.get("label", option.get("name", ""))).strip()
+                    if not label:
+                        continue
+                    description = str(option.get("description", "")).strip()
+                    icon_url = str(option.get("icon_url", "")).strip()
+                    if len(icon_url) > max_style_option_icon_length:
+                        raise ValidationError({"styles": [f"Style option icon is too large (max {max_style_option_icon_length} chars)."]})
+                    normalized_options.append({"label": label, "description": description, "icon_url": icon_url})
+
+            cleaned_styles.append({"name": name, "icon_url": style_icon, "options": normalized_options})
 
         cleaned_fabrics = []
         for fabric in fabrics:
