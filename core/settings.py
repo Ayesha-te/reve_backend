@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from urllib.parse import urlparse, parse_qs
 from datetime import timedelta
+from corsheaders.defaults import default_headers
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -163,6 +164,17 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_ALL_ORIGINS = True
+# Explicitly allow the deployed admin panel origin for browsers
+CORS_ALLOWED_ORIGINS = [
+    "https://reve-admin.vercel.app",
+    "https://www.reve-admin.vercel.app",
+]
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    "authorization",
+    "content-type",
+]
+CORS_ALLOW_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 
 # External services
 BACKEND_URL = os.getenv("BACKEND_URL", "https://level-antoinette-sagiyqwgey-311e9cc7.koyeb.app/")
