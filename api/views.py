@@ -442,6 +442,8 @@ class OrderViewSet(viewsets.ModelViewSet):
                 size=item.get("size", ""),
                 color=item.get("color", ""),
                 style=item.get("style", ""),
+                dimension=item.get("dimension", ""),
+                dimension_details=item.get("dimension_details", ""),
             )
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
