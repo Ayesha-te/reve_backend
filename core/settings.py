@@ -95,9 +95,11 @@ db_options = {"sslmode": sslmode}
 if channel_binding:
     db_options["channel_binding"] = channel_binding
 db_options["connect_timeout"] = int(os.getenv("DB_CONNECT_TIMEOUT", "5"))
-# Cancel slow queries instead of letting workers hit the gunicorn timeout.
-statement_timeout_ms = os.getenv("DB_STATEMENT_TIMEOUT_MS", "15000")
-db_options["options"] = f"-c statement_timeout={statement_timeout_ms}"
+# Optional: set statement_timeout if your provider supports connection options
+# (Neon pooler does NOT support this; leave disabled unless explicitly enabled).
+statement_timeout_ms = os.getenv("DB_STATEMENT_TIMEOUT_MS")
+if os.getenv("DB_ALLOW_STATEMENT_TIMEOUT_OPTIONS", "False").lower() == "true" and statement_timeout_ms:
+    db_options["options"] = f"-c statement_timeout={statement_timeout_ms}"
 
 DATABASES = {
     "default": {
