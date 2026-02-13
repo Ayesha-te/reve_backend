@@ -2,6 +2,7 @@ import uuid
 import os
 import stripe
 import requests
+import re
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -37,6 +38,7 @@ from .models import (
     ProductFilterValue,
     DimensionTemplate,
     ProductDimensionTemplate,
+    ProductStyle,
 )
 from .serializers import (
     RegisterSerializer,
@@ -50,6 +52,7 @@ from .serializers import (
     FilterTypeSerializer,
     CategoryFilterSerializer,
     ProductFilterValueSerializer,
+    ProductStyleLibrarySerializer,
 )
 
 
@@ -352,12 +355,15 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         cleaned_styles = []
         max_style_option_icon_length = 200000  # allow inline SVG but block payload explosions
+        name_pattern = re.compile(r"^[A-Za-z0-9._-]+$")
         for style in styles:
-            name = str((style or {}).get("name", "")).strip()
+            name = str((style or {}).get("name", "")).strip().replace(" ", "-")
             if not name:
                 continue
             if len(name) > style_name_max:
                 raise ValidationError({"styles": [f"Style name too long (max {style_name_max} chars)."]})
+            if not name_pattern.match(name):
+                raise ValidationError({"styles": [f"Style name contains invalid characters. Use letters, numbers, dash or underscore."]})
             style_icon = str((style or {}).get("icon_url", "")).strip()
             if len(style_icon) > max_style_option_icon_length:
                 raise ValidationError({"styles": [f"Style icon is too large (max {max_style_option_icon_length} chars)."]})
@@ -373,12 +379,23 @@ class ProductViewSet(viewsets.ModelViewSet):
                         continue
                     if not isinstance(option, dict):
                         continue
-                    label = str(option.get("label", option.get("name", ""))).strip()
+                    label = str(option.get("label", option.get("name", ""))).strip().replace(" ", "-")
                     if not label:
                         continue
+                    if not name_pattern.match(label):
+                        raise ValidationError({"styles": [f"Style option '{label}' has invalid characters. Use letters, numbers, dash or underscore."]})
                     description = str(option.get("description", "")).strip()
                     icon_url = str(option.get("icon_url", "")).strip()
                     size_val = str(option.get("size", "") or "").strip()
+                    raw_sizes = option.get("sizes", [])
+                    sizes = []
+                    if isinstance(raw_sizes, list):
+                        for s in raw_sizes:
+                            sval = str(s or "").strip()
+                            if sval:
+                                sizes.append(sval)
+                    if size_val and size_val not in sizes:
+                        sizes.append(size_val)
                     price_delta = option.get("price_delta", option.get("delta", 0))
                     try:
                         price_delta = float(price_delta or 0)
@@ -386,7 +403,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                         price_delta = 0
                     if len(icon_url) > max_style_option_icon_length:
                         raise ValidationError({"styles": [f"Style option icon is too large (max {max_style_option_icon_length} chars)."]})
-                    normalized_options.append({"label": label, "description": description, "icon_url": icon_url, "price_delta": price_delta, "size": size_val})
+                    normalized_options.append({"label": label, "description": description, "icon_url": icon_url, "price_delta": price_delta, "sizes": sizes})
 
             cleaned_styles.append({
                 "name": name,
@@ -739,3 +756,12 @@ class CategoryFiltersView(generics.GenericAPIView):
         
         serializer = FilterTypeSerializer(filter_types, many=True)
         return Response({'filters': serializer.data})
+
+
+class ProductStyleLibraryViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Read-only list of all style groups across products, for reuse.
+    """
+    queryset = ProductStyle.objects.select_related("product", "size").all().order_by("product_id", "id")
+    serializer_class = ProductStyleLibrarySerializer
+    permission_classes = [AllowAny]

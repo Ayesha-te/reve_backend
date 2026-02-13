@@ -29,6 +29,7 @@ router.register(r"uploads", UploadViewSet, basename="uploads")
 router.register(r"payments", PaymentViewSet, basename="payments")
 router.register(r"filter-types", FilterTypeViewSet)
 router.register(r"dimension-templates", DimensionTemplateViewSet)
+router.register(r"style-groups", ProductStyleLibraryViewSet, basename="style-groups")
 
 urlpatterns = [
     path("health/", HealthCheckView.as_view(), name="health"),
