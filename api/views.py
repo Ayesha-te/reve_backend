@@ -378,6 +378,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                         continue
                     description = str(option.get("description", "")).strip()
                     icon_url = str(option.get("icon_url", "")).strip()
+                    size_val = str(option.get("size", "") or "").strip()
                     price_delta = option.get("price_delta", option.get("delta", 0))
                     try:
                         price_delta = float(price_delta or 0)
@@ -385,7 +386,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                         price_delta = 0
                     if len(icon_url) > max_style_option_icon_length:
                         raise ValidationError({"styles": [f"Style option icon is too large (max {max_style_option_icon_length} chars)."]})
-                    normalized_options.append({"label": label, "description": description, "icon_url": icon_url, "price_delta": price_delta})
+                    normalized_options.append({"label": label, "description": description, "icon_url": icon_url, "price_delta": price_delta, "size": size_val})
 
             cleaned_styles.append({
                 "name": name,
