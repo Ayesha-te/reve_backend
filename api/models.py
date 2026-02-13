@@ -96,6 +96,8 @@ class ProductSize(models.Model):
 
 class ProductStyle(models.Model):
     product = models.ForeignKey(Product, related_name="styles", on_delete=models.CASCADE)
+    size = models.ForeignKey(ProductSize, related_name="style_groups", on_delete=models.SET_NULL, null=True, blank=True)
+    is_shared = models.BooleanField(default=False)
     name = models.CharField(max_length=100)
     # accepts full SVG markup or URL; use TextField for flexibility
     icon_url = models.TextField(blank=True, default="")
@@ -106,6 +108,8 @@ class ProductFabric(models.Model):
     product = models.ForeignKey(Product, related_name="fabrics", on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     image_url = models.URLField(max_length=1000)
+    is_shared = models.BooleanField(default=False)
+    colors = models.JSONField(default=list, blank=True)  # list of {name, hex_code, image_url?}
 
     class Meta:
         ordering = ["id"]
@@ -145,6 +149,9 @@ class OrderItem(models.Model):
     style = models.TextField(blank=True, default="")
     dimension = models.CharField(max_length=120, blank=True, default="")
     dimension_details = models.TextField(blank=True, default="")
+    selected_variants = models.JSONField(default=dict, blank=True)
+    extras_total = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    include_dimension = models.BooleanField(default=True)
 
 
 class Review(models.Model):

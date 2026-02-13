@@ -83,15 +83,19 @@ class ProductSizeSerializer(serializers.ModelSerializer):
 
 
 class ProductStyleSerializer(serializers.ModelSerializer):
+    size = ProductSizeSerializer(read_only=True)
+    size_id = serializers.IntegerField(source="size.id", read_only=True)
+    size_name = serializers.CharField(source="size.name", read_only=True, default=None)
+
     class Meta:
         model = ProductStyle
-        fields = ("id", "name", "icon_url", "options")
+        fields = ("id", "name", "icon_url", "options", "is_shared", "size", "size_id", "size_name")
 
 
 class ProductFabricSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductFabric
-        fields = ("id", "name", "image_url")
+        fields = ("id", "name", "image_url", "is_shared", "colors")
 
 
 class DimensionRowSerializer(serializers.ModelSerializer):

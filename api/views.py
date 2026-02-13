@@ -262,15 +262,26 @@ class ProductViewSet(viewsets.ModelViewSet):
             ProductVideo.objects.create(product=product, url=vid.get("url"))
         for col in colors:
             ProductColor.objects.create(product=product, name=col.get("name", ""), hex_code=col.get("hex_code", "#000000"))
+        size_objs = []
         for size in sizes:
-            ProductSize.objects.create(
+            size_obj = ProductSize.objects.create(
                 product=product,
                 name=size.get("name", ""),
                 description=size.get("description", ""),
             )
+            size_objs.append(size_obj)
+        size_lookup = {s.name.strip().lower(): s for s in size_objs}
+        size_lookup.update({str(s.id): s for s in size_objs})
         for style in styles:
+            size_ref = style.get("size")
+            size_obj = None
+            if size_ref:
+                key = str(size_ref).strip().lower()
+                size_obj = size_lookup.get(key)
             ProductStyle.objects.create(
                 product=product,
+                size=size_obj,
+                is_shared=bool(style.get("is_shared", False)),
                 name=style.get("name"),
                 icon_url=style.get("icon_url", ""),
                 options=style.get("options", []),
@@ -280,6 +291,8 @@ class ProductViewSet(viewsets.ModelViewSet):
                 product=product,
                 name=fabric.get("name", ""),
                 image_url=fabric.get("image_url", ""),
+                is_shared=bool(fabric.get("is_shared", False)),
+                colors=fabric.get("colors", []),
             )
 
     def _validate_related_data(self, images, videos, colors, sizes, styles, fabrics):
@@ -356,7 +369,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                     if isinstance(option, str):
                         label = option.strip()
                         if label:
-                            normalized_options.append({"label": label, "description": "", "icon_url": ""})
+                            normalized_options.append({"label": label, "description": "", "icon_url": "", "price_delta": 0})
                         continue
                     if not isinstance(option, dict):
                         continue
@@ -365,23 +378,47 @@ class ProductViewSet(viewsets.ModelViewSet):
                         continue
                     description = str(option.get("description", "")).strip()
                     icon_url = str(option.get("icon_url", "")).strip()
+                    price_delta = option.get("price_delta", option.get("delta", 0))
+                    try:
+                        price_delta = float(price_delta or 0)
+                    except Exception:
+                        price_delta = 0
                     if len(icon_url) > max_style_option_icon_length:
                         raise ValidationError({"styles": [f"Style option icon is too large (max {max_style_option_icon_length} chars)."]})
-                    normalized_options.append({"label": label, "description": description, "icon_url": icon_url})
+                    normalized_options.append({"label": label, "description": description, "icon_url": icon_url, "price_delta": price_delta})
 
-            cleaned_styles.append({"name": name, "icon_url": style_icon, "options": normalized_options})
+            cleaned_styles.append({
+                "name": name,
+                "icon_url": style_icon,
+                "options": normalized_options,
+                "is_shared": bool((style or {}).get("is_shared", False)),
+                "size": (style or {}).get("size"),
+            })
 
         cleaned_fabrics = []
         for fabric in fabrics:
             name = str((fabric or {}).get("name", "")).strip()
             image_url = str((fabric or {}).get("image_url", "")).strip()
+            is_shared = bool((fabric or {}).get("is_shared", False))
+            colors_list = []
+            for col in (fabric or {}).get("colors", []) or []:
+                if not isinstance(col, dict):
+                    continue
+                cname = str(col.get("name", "")).strip()
+                if not cname:
+                    continue
+                colors_list.append({
+                    "name": cname,
+                    "hex_code": str(col.get("hex_code", "#000000")).strip() or "#000000",
+                    "image_url": str(col.get("image_url", "")).strip(),
+                })
             if not name and not image_url:
                 continue
             if len(name) > fabric_name_max:
                 raise ValidationError({"fabrics": [f"Fabric name too long (max {fabric_name_max} chars)."]})
             if len(image_url) > fabric_url_max:
                 raise ValidationError({"fabrics": [f"Fabric image URL too long (max {fabric_url_max} chars)."]})
-            cleaned_fabrics.append({"name": name, "image_url": image_url})
+            cleaned_fabrics.append({"name": name, "image_url": image_url, "is_shared": is_shared, "colors": colors_list})
 
         return cleaned_images, cleaned_videos, cleaned_colors, cleaned_sizes, cleaned_styles, cleaned_fabrics
 
@@ -444,6 +481,9 @@ class OrderViewSet(viewsets.ModelViewSet):
                 style=item.get("style", ""),
                 dimension=item.get("dimension", ""),
                 dimension_details=item.get("dimension_details", ""),
+                selected_variants=item.get("selected_variants", {}),
+                extras_total=item.get("extras_total", 0),
+                include_dimension=bool(item.get("include_dimension", True)),
             )
 
         return Response(OrderSerializer(order).data, status=status.HTTP_201_CREATED)
