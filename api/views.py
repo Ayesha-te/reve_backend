@@ -9,6 +9,8 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.utils.text import slugify
 from django.db.models import Prefetch
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from rest_framework import viewsets, status, generics
 from rest_framework.decorators import action
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
@@ -77,9 +79,15 @@ class IsAdminOrReadOnly(IsAdminUser):
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
-    queryset = Category.objects.all().order_by("sort_order", "name")
+    queryset = Category.objects.all().prefetch_related("subcategories").order_by("sort_order", "name")
     serializer_class = CategorySerializer
     permission_classes = [IsAdminOrReadOnly]
+    http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
+
+    @method_decorator(cache_page(60 * 5))
+    def list(self, request, *args, **kwargs):
+        """Cache category list for 5 minutes to avoid DB thrash and slow responses."""
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = super().get_queryset()
@@ -114,6 +122,11 @@ class CollectionViewSet(viewsets.ModelViewSet):
     queryset = Collection.objects.all().prefetch_related("products").order_by("sort_order", "name")
     serializer_class = CollectionSerializer
     permission_classes = [IsAdminOrReadOnly]
+
+    @method_decorator(cache_page(60 * 5))
+    def list(self, request, *args, **kwargs):
+        """Cache collection list for 5 minutes to prevent repeated heavy DB hits."""
+        return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = super().get_queryset()

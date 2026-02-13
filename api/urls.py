@@ -15,6 +15,7 @@ from .views import (
     PaymentViewSet,
     FilterTypeViewSet,
     DimensionTemplateViewSet,
+    ProductStyleLibraryViewSet,
     CategoryFiltersView,
 )
 
