@@ -31,6 +31,7 @@ from .models import (
     ProductSize,
     ProductStyle,
     ProductFabric,
+    ProductMattress,
     Order,
     OrderItem,
     Review,
@@ -41,7 +42,6 @@ from .models import (
     ProductFilterValue,
     DimensionTemplate,
     ProductDimensionTemplate,
-    ProductStyle,
 )
 from .serializers import (
     RegisterSerializer,
@@ -149,6 +149,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         "sizes",
         "styles",
         "fabrics",
+        "mattresses",
         Prefetch(
             "filter_values",
             queryset=ProductFilterValue.objects.select_related("filter_option__filter_type"),
@@ -206,10 +207,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         sizes = data.pop("sizes", [])
         styles = data.pop("styles", [])
         fabrics = data.pop("fabrics", [])
+        mattresses = data.pop("mattresses", [])
         filter_values = data.pop("filter_values", [])
 
-        images, videos, colors, sizes, styles, fabrics = self._validate_related_data(
-            images, videos, colors, sizes, styles, fabrics
+        images, videos, colors, sizes, styles, fabrics, mattresses = self._validate_related_data(
+            images, videos, colors, sizes, styles, fabrics, mattresses
         )
 
         serializer = self.get_serializer(data=data)
@@ -217,7 +219,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         dimension_template_obj = serializer.validated_data.get("_dimension_template_obj")
         product = serializer.save()
 
-        self._handle_related_data(product, images, videos, colors, sizes, styles, fabrics)
+        self._handle_related_data(product, images, videos, colors, sizes, styles, fabrics, mattresses)
         self._handle_filter_values(product, filter_values)
         self._handle_dimension_template(product, dimension_template_obj)
 
@@ -231,10 +233,11 @@ class ProductViewSet(viewsets.ModelViewSet):
         sizes = data.pop("sizes", None)
         styles = data.pop("styles", None)
         fabrics = data.pop("fabrics", None)
+        mattresses = data.pop("mattresses", None)
         filter_values = data.pop("filter_values", None)
 
-        images, videos, colors, sizes, styles, fabrics = self._validate_related_data(
-            images or [], videos or [], colors or [], sizes or [], styles or [], fabrics or []
+        images, videos, colors, sizes, styles, fabrics, mattresses = self._validate_related_data(
+            images or [], videos or [], colors or [], sizes or [], styles or [], fabrics or [], mattresses or []
         )
 
         instance = self.get_object()
@@ -255,6 +258,8 @@ class ProductViewSet(viewsets.ModelViewSet):
             product.styles.all().delete()
         if fabrics is not None:
             product.fabrics.all().delete()
+        if mattresses is not None:
+            product.mattresses.all().delete()
 
         self._handle_related_data(
             product,
@@ -264,6 +269,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             sizes or [],
             styles or [],
             fabrics or [],
+            mattresses or [],
         )
         if filter_values is not None:
             self._handle_filter_values(product, filter_values)
@@ -272,7 +278,7 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         return Response(ProductSerializer(product).data)
 
-    def _handle_related_data(self, product, images, videos, colors, sizes, styles, fabrics):
+    def _handle_related_data(self, product, images, videos, colors, sizes, styles, fabrics, mattresses):
         for img in images:
             ProductImage.objects.create(product=product, url=img.get("url"))
         for vid in videos:
@@ -317,8 +323,24 @@ class ProductViewSet(viewsets.ModelViewSet):
                 is_shared=bool(fabric.get("is_shared", False)),
                 colors=fabric.get("colors", []),
             )
+        for mattress in mattresses:
+            source_product = None
+            source_id = mattress.get("source_product")
+            if source_id:
+                try:
+                    source_product = Product.objects.get(id=source_id)
+                except Product.DoesNotExist:
+                    source_product = None
+            ProductMattress.objects.create(
+                product=product,
+                source_product=source_product,
+                name=mattress.get("name", ""),
+                description=mattress.get("description", ""),
+                image_url=mattress.get("image_url", ""),
+                price=mattress.get("price", None),
+            )
 
-    def _validate_related_data(self, images, videos, colors, sizes, styles, fabrics):
+    def _validate_related_data(self, images, videos, colors, sizes, styles, fabrics, mattresses):
         image_url_max = ProductImage._meta.get_field("url").max_length
         video_url_max = ProductVideo._meta.get_field("url").max_length
         color_name_max = ProductColor._meta.get_field("name").max_length
@@ -327,6 +349,8 @@ class ProductViewSet(viewsets.ModelViewSet):
         style_name_max = ProductStyle._meta.get_field("name").max_length
         fabric_name_max = ProductFabric._meta.get_field("name").max_length
         fabric_url_max = ProductFabric._meta.get_field("image_url").max_length
+        mattress_name_max = ProductMattress._meta.get_field("name").max_length
+        mattress_image_max = ProductMattress._meta.get_field("image_url").max_length
 
         cleaned_images = []
         for img in images:
@@ -465,7 +489,36 @@ class ProductViewSet(viewsets.ModelViewSet):
                 raise ValidationError({"fabrics": [f"Fabric image URL too long (max {fabric_url_max} chars)."]})
             cleaned_fabrics.append({"name": name, "image_url": image_url, "is_shared": is_shared, "colors": colors_list})
 
-        return cleaned_images, cleaned_videos, cleaned_colors, cleaned_sizes, cleaned_styles, cleaned_fabrics
+        cleaned_mattresses = []
+        for mat in mattresses:
+            name = str((mat or {}).get("name", "")).strip()
+            description = str((mat or {}).get("description", "")).strip()
+            image_url = str((mat or {}).get("image_url", "")).strip()
+            source_product = mat.get("source_product")
+            raw_price = mat.get("price", None)
+            price = None
+            if raw_price not in (None, "", "null"):
+                try:
+                    price = Decimal(raw_price)
+                except (InvalidOperation, TypeError):
+                    raise ValidationError({"mattresses": [f"Invalid price for mattress '{name or 'untitled'}'."]})
+            if name and len(name) > mattress_name_max:
+                raise ValidationError({"mattresses": [f"Mattress name too long (max {mattress_name_max} chars)."]})
+            if image_url and len(image_url) > mattress_image_max:
+                raise ValidationError({"mattresses": [f"Mattress image URL too long (max {mattress_image_max} chars)."]})
+            if not any([name, description, image_url, price, source_product]):
+                continue
+            cleaned_mattresses.append(
+                {
+                    "name": name,
+                    "description": description,
+                    "image_url": image_url,
+                    "price": price,
+                    "source_product": source_product,
+                }
+            )
+
+        return cleaned_images, cleaned_videos, cleaned_colors, cleaned_sizes, cleaned_styles, cleaned_fabrics, cleaned_mattresses
 
     def _handle_filter_values(self, product, filter_values):
         product.filter_values.all().delete()

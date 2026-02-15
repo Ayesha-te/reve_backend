@@ -11,6 +11,7 @@ from .models import (
     ProductSize,
     ProductStyle,
     ProductFabric,
+    ProductMattress,
     Order,
     OrderItem,
     Review,
@@ -123,6 +124,24 @@ class ProductFabricSerializer(serializers.ModelSerializer):
         fields = ("id", "name", "image_url", "is_shared", "colors")
 
 
+class ProductMattressSerializer(serializers.ModelSerializer):
+    source_product_name = serializers.CharField(source="source_product.name", read_only=True)
+    source_product_slug = serializers.CharField(source="source_product.slug", read_only=True)
+
+    class Meta:
+        model = ProductMattress
+        fields = (
+            "id",
+            "name",
+            "description",
+            "image_url",
+            "price",
+            "source_product",
+            "source_product_name",
+            "source_product_slug",
+        )
+
+
 class DimensionRowSerializer(serializers.ModelSerializer):
     class Meta:
         model = DimensionRow
@@ -144,6 +163,7 @@ class ProductSerializer(serializers.ModelSerializer):
     sizes = ProductSizeSerializer(many=True, read_only=True)
     styles = ProductStyleSerializer(many=True, read_only=True)
     fabrics = ProductFabricSerializer(many=True, read_only=True)
+    mattresses = ProductMattressSerializer(many=True, read_only=True)
     filters = serializers.SerializerMethodField()
     computed_dimensions = serializers.SerializerMethodField()
     wingback_width_delta_cm = serializers.SerializerMethodField()
@@ -186,6 +206,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "sizes",
             "styles",
             "fabrics",
+            "mattresses",
             "filters",
             "computed_dimensions",
             "dimension_template",
@@ -310,6 +331,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
     sizes = ProductSizeSerializer(many=True, required=False)
     styles = ProductStyleSerializer(many=True, required=False)
     fabrics = ProductFabricSerializer(many=True, required=False)
+    mattresses = ProductMattressSerializer(many=True, required=False)
     dimension_template = serializers.IntegerField(required=False, allow_null=True, write_only=True)
 
     class Meta:
@@ -342,6 +364,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "sizes",
             "styles",
             "fabrics",
+            "mattresses",
             "dimension_template",
         )
 
