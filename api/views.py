@@ -549,9 +549,67 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all().order_by("-created_at")
+    queryset = Review.objects.all()
     serializer_class = ReviewSerializer
-    permission_classes = [IsAdminOrReadOnly]
+
+    def get_permissions(self):
+        if self.action in ("list", "retrieve", "create"):
+            return [AllowAny()]
+        return [IsAdminUser()]
+
+    def get_queryset(self):
+        queryset = Review.objects.select_related("product", "created_by").all().order_by("-created_at")
+        product_id = self.request.query_params.get("product")
+        product_slug = self.request.query_params.get("product_slug")
+        if product_id:
+            queryset = queryset.filter(product_id=product_id)
+        if product_slug:
+            queryset = queryset.filter(product__slug=product_slug)
+
+        if not (self.request.user and self.request.user.is_staff):
+            queryset = queryset.filter(is_visible=True)
+        return queryset
+
+    def create(self, request, *args, **kwargs):
+        data = request.data.copy()
+        is_admin = bool(request.user and request.user.is_staff)
+
+        # Frontend submissions should always start hidden
+        if not is_admin:
+            data["is_visible"] = False
+        else:
+            # Default admin submissions to visible unless explicitly set
+            data.setdefault("is_visible", True)
+
+        serializer = self.get_serializer(data=data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(created_by=request.user if request.user.is_authenticated else None)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # Non-admin users should not see hidden reviews
+        if not (request.user and request.user.is_staff) and not instance.is_visible:
+            return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsAdminUser])
+    def set_visibility(self, request, pk=None):
+        review = self.get_object()
+        raw_value = request.data.get("is_visible")
+        if isinstance(raw_value, str):
+            raw_value = raw_value.lower().strip()
+            is_visible = raw_value in ("1", "true", "yes", "on")
+        else:
+            is_visible = bool(raw_value)
+        review.is_visible = is_visible
+        review.save(update_fields=["is_visible"])
+        return Response(self.get_serializer(review).data)
 
 
 class UploadViewSet(viewsets.ViewSet):

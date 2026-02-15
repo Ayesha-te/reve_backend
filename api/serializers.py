@@ -467,9 +467,27 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class ReviewSerializer(serializers.ModelSerializer):
+    product_name = serializers.ReadOnlyField(source="product.name")
+    created_by_username = serializers.SerializerMethodField()
+
+    def get_created_by_username(self, obj):
+        return obj.created_by.username if obj.created_by else None
+
     class Meta:
         model = Review
-        fields = "__all__"
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "name",
+            "rating",
+            "comment",
+            "is_visible",
+            "created_at",
+            "created_by",
+            "created_by_username",
+        ]
+        read_only_fields = ("created_at", "created_by")
 
 
 class FilterOptionSerializer(serializers.ModelSerializer):

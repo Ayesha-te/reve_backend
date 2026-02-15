@@ -93,8 +93,9 @@ class OrderAdmin(admin.ModelAdmin):
 
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
-    list_display = ("product", "name", "rating", "approved", "created_at")
-    list_filter = ("approved", "rating")
+    list_display = ("product", "name", "rating", "is_visible", "created_by", "created_at")
+    list_filter = ("is_visible", "rating")
+    search_fields = ("product__name", "name", "comment")
 
 
 @admin.register(Collection)
