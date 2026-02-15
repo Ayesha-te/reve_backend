@@ -83,6 +83,7 @@ class ProductColor(models.Model):
     product = models.ForeignKey(Product, related_name="colors", on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
     hex_code = models.CharField(max_length=7, default='#000000')
+    image_url = models.URLField(max_length=1000, blank=True)
     
     class Meta:
         ordering = ['id']
@@ -92,6 +93,7 @@ class ProductSize(models.Model):
     product = models.ForeignKey(Product, related_name="sizes", on_delete=models.CASCADE)
     name = models.CharField(max_length=50)
     description = models.CharField(max_length=255, blank=True)
+    price_delta = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
 
 class ProductStyle(models.Model):

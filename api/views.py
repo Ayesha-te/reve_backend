@@ -3,6 +3,7 @@ import os
 import stripe
 import requests
 import re
+from decimal import Decimal, InvalidOperation
 from urllib.parse import urljoin
 
 from django.conf import settings
@@ -277,13 +278,19 @@ class ProductViewSet(viewsets.ModelViewSet):
         for vid in videos:
             ProductVideo.objects.create(product=product, url=vid.get("url"))
         for col in colors:
-            ProductColor.objects.create(product=product, name=col.get("name", ""), hex_code=col.get("hex_code", "#000000"))
+            ProductColor.objects.create(
+                product=product,
+                name=col.get("name", ""),
+                hex_code=col.get("hex_code", "#000000"),
+                image_url=col.get("image_url", ""),
+            )
         size_objs = []
         for size in sizes:
             size_obj = ProductSize.objects.create(
                 product=product,
                 name=size.get("name", ""),
                 description=size.get("description", ""),
+                price_delta=size.get("price_delta", 0),
             )
             size_objs.append(size_obj)
         size_lookup = {s.name.strip().lower(): s for s in size_objs}
@@ -347,16 +354,19 @@ class ProductViewSet(viewsets.ModelViewSet):
             if len(name) > color_name_max:
                 raise ValidationError({"colors": [f"Color name too long (max {color_name_max} chars)."]})
             hex_code = str((col or {}).get("hex_code", "#000000")).strip() or "#000000"
-            cleaned_colors.append({"name": name, "hex_code": hex_code})
+            image_url = str((col or {}).get("image_url", "")).strip()
+            cleaned_colors.append({"name": name, "hex_code": hex_code, "image_url": image_url})
 
         cleaned_sizes = []
         for size in sizes:
             if isinstance(size, dict):
                 value = str(size.get("name", "")).strip()
                 description = str(size.get("description", "")).strip()
+                raw_delta = size.get("price_delta", 0)
             else:
                 value = str(size).strip()
                 description = ""
+                raw_delta = 0
 
             if not value:
                 continue
@@ -364,7 +374,11 @@ class ProductViewSet(viewsets.ModelViewSet):
                 raise ValidationError({"sizes": [f"Size value too long (max {size_name_max} chars)."]})
             if len(description) > size_desc_max:
                 raise ValidationError({"sizes": [f"Size description too long (max {size_desc_max} chars)."]})
-            cleaned_sizes.append({"name": value, "description": description})
+            try:
+                delta = Decimal(raw_delta)
+            except (InvalidOperation, TypeError):
+                raise ValidationError({"sizes": [f"Invalid price_delta for size '{value}'. Provide a number."]})
+            cleaned_sizes.append({"name": value, "description": description, "price_delta": delta})
 
         cleaned_styles = []
         max_style_option_icon_length = 200000  # allow inline SVG but block payload explosions

@@ -73,13 +73,13 @@ class ProductVideoSerializer(serializers.ModelSerializer):
 class ProductColorSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductColor
-        fields = ("id", "name", "hex_code")
+        fields = ("id", "name", "hex_code", "image_url")
 
 
 class ProductSizeSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductSize
-        fields = ("id", "name", "description")
+        fields = ("id", "name", "description", "price_delta")
 
 
 class ProductStyleSerializer(serializers.ModelSerializer):
