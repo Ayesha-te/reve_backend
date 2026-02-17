@@ -407,7 +407,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         cleaned_styles = []
         max_style_option_icon_length = 200000  # allow inline SVG but block payload explosions
         # Allow letters, numbers, dot/underscore/dash plus common punctuation used in sizes (quotes, apostrophes, parentheses)
-        name_pattern = re.compile(r"^[A-Za-z0-9._\\-\"'()]+$")
+        name_pattern = re.compile(r"^[A-Za-z0-9._\"'()\\-]+$")
         for style in styles:
             name = str((style or {}).get("name", "")).strip().replace(" ", "-")
             if not name:
