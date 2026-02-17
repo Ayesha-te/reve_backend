@@ -407,15 +407,14 @@ class ProductViewSet(viewsets.ModelViewSet):
         cleaned_styles = []
         max_style_option_icon_length = 200000  # allow inline SVG but block payload explosions
         # Allow letters, numbers, dot/underscore/dash, spaces, and common punctuation used in sizes (quotes, apostrophes, parentheses)
-        name_pattern = re.compile(r"^[A-Za-z0-9._\"'()\\-\\s]+$")
+        # Relax validation: allow any characters (length limits still enforced)
         for style in styles:
             name = str((style or {}).get("name", "")).strip()
             if not name:
                 continue
             if len(name) > style_name_max:
                 raise ValidationError({"styles": [f"Style name too long (max {style_name_max} chars)."]})
-            if not name_pattern.match(name):
-                raise ValidationError({"styles": [f"Style name contains invalid characters. Use letters, numbers, dash or underscore."]})
+            # No character whitelist beyond length
             style_icon = str((style or {}).get("icon_url", "")).strip()
             if len(style_icon) > max_style_option_icon_length:
                 raise ValidationError({"styles": [f"Style icon is too large (max {max_style_option_icon_length} chars)."]})
@@ -434,8 +433,6 @@ class ProductViewSet(viewsets.ModelViewSet):
                     label = str(option.get("label", option.get("name", ""))).strip()
                     if not label:
                         continue
-                    if not name_pattern.match(label):
-                        raise ValidationError({"styles": [f"Style option '{label}' has invalid characters. Use letters, numbers, dash or underscore."]})
                     description = str(option.get("description", "")).strip()
                     icon_url = str(option.get("icon_url", "")).strip()
                     size_val = str(option.get("size", "") or "").strip()
