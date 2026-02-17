@@ -301,6 +301,7 @@ class ProductListSerializer(serializers.ModelSerializer):
     review_count = serializers.IntegerField(read_only=True)
     category_slug = serializers.ReadOnlyField(source="category.slug")
     subcategory_slug = serializers.ReadOnlyField(source="subcategory.slug")
+    filter_values = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -320,7 +321,24 @@ class ProductListSerializer(serializers.ModelSerializer):
             "sizes",
             "category_slug",
             "subcategory_slug",
+            "filter_values",
         ]
+
+    def get_filter_values(self, obj):
+        # Lightweight payload for client-side filtering
+        values = getattr(obj, "filter_values_all", None)
+        if values is None:
+            values = ProductFilterValue.objects.filter(product=obj).select_related("filter_option__filter_type")
+        result = []
+        for val in values:
+            ft = val.filter_option.filter_type
+            result.append(
+                {
+                    "filter_type": ft.slug,
+                    "option": val.filter_option.slug,
+                }
+            )
+        return result
 
 
 class ProductWriteSerializer(serializers.ModelSerializer):

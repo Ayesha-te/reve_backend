@@ -16,6 +16,7 @@ from .views import (
     FilterTypeViewSet,
     DimensionTemplateViewSet,
     ProductStyleLibraryViewSet,
+    CategoryFilterViewSet,
     CategoryFiltersView,
 )
 
@@ -31,6 +32,7 @@ router.register(r"payments", PaymentViewSet, basename="payments")
 router.register(r"filter-types", FilterTypeViewSet)
 router.register(r"dimension-templates", DimensionTemplateViewSet)
 router.register(r"style-groups", ProductStyleLibraryViewSet, basename="style-groups")
+router.register(r"category-filters", CategoryFilterViewSet)
 
 urlpatterns = [
     path("health/", HealthCheckView.as_view(), name="health"),

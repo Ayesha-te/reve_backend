@@ -850,6 +850,32 @@ class DimensionTemplateViewSet(viewsets.ModelViewSet):
         return DimensionTemplateSerializer
 
 
+class CategoryFilterViewSet(viewsets.ModelViewSet):
+    """
+    Manage which filter types appear on a given category or subcategory page.
+    """
+    serializer_class = CategoryFilterSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+    def get_queryset(self):
+        queryset = CategoryFilter.objects.select_related(
+            "filter_type", "category", "subcategory"
+        ).order_by("display_order", "id")
+
+        category_id = self.request.query_params.get("category")
+        subcategory_id = self.request.query_params.get("subcategory")
+
+        if category_id:
+            queryset = queryset.filter(category_id=category_id)
+        if subcategory_id:
+            queryset = queryset.filter(subcategory_id=subcategory_id)
+
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+
 class CategoryFiltersView(generics.GenericAPIView):
     """
     GET /api/categories/{category_slug}/filters/
@@ -865,12 +891,24 @@ class CategoryFiltersView(generics.GenericAPIView):
             category = Category.objects.get(slug=category_slug)
         except Category.DoesNotExist:
             return Response({"error": "Category not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        # Optional subcategory context (by slug)
+        sub_slug = request.query_params.get("subcategory")
+        subcategory = None
+        if sub_slug:
+            subcategory = SubCategory.objects.filter(slug=sub_slug, category=category).first()
         
         # Get filters linked to this category
         category_filters = CategoryFilter.objects.filter(
             Q(category=category) | Q(subcategory__category=category),
             is_active=True
-        ).select_related('filter_type').prefetch_related(
+        )
+
+        # If subcategory is specified, prefer filters tied to it but still include category-level ones
+        if subcategory:
+            category_filters = category_filters.filter(Q(subcategory=subcategory) | Q(category=category))
+
+        category_filters = category_filters.select_related('filter_type').prefetch_related(
             'filter_type__options'
         ).order_by('display_order')
         
@@ -889,6 +927,7 @@ class CategoryFiltersView(generics.GenericAPIView):
                 option.product_count = ProductFilterValue.objects.filter(
                     filter_option=option,
                     product__category=category,
+                    **({"product__subcategory": subcategory} if subcategory else {}),
                     product__in_stock=True
                 ).values('product').distinct().count()
         
