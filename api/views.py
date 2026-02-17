@@ -406,10 +406,10 @@ class ProductViewSet(viewsets.ModelViewSet):
 
         cleaned_styles = []
         max_style_option_icon_length = 200000  # allow inline SVG but block payload explosions
-        # Allow letters, numbers, dot/underscore/dash plus common punctuation used in sizes (quotes, apostrophes, parentheses)
-        name_pattern = re.compile(r"^[A-Za-z0-9._\"'()\\-]+$")
+        # Allow letters, numbers, dot/underscore/dash, spaces, and common punctuation used in sizes (quotes, apostrophes, parentheses)
+        name_pattern = re.compile(r"^[A-Za-z0-9._\"'()\\-\\s]+$")
         for style in styles:
-            name = str((style or {}).get("name", "")).strip().replace(" ", "-")
+            name = str((style or {}).get("name", "")).strip()
             if not name:
                 continue
             if len(name) > style_name_max:
@@ -431,7 +431,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                         continue
                     if not isinstance(option, dict):
                         continue
-                    label = str(option.get("label", option.get("name", ""))).strip().replace(" ", "-")
+                    label = str(option.get("label", option.get("name", ""))).strip()
                     if not label:
                         continue
                     if not name_pattern.match(label):
