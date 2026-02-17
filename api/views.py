@@ -854,6 +854,9 @@ class CategoryFilterViewSet(viewsets.ModelViewSet):
     """
     Manage which filter types appear on a given category or subcategory page.
     """
+    queryset = CategoryFilter.objects.select_related(
+        "filter_type", "category", "subcategory"
+    ).order_by("display_order", "id")
     serializer_class = CategoryFilterSerializer
     permission_classes = [IsAdminOrReadOnly]
 
