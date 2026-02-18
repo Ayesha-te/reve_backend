@@ -192,6 +192,9 @@ class ProductSerializer(serializers.ModelSerializer):
             "faqs",
             "delivery_info",
             "returns_guarantee",
+            "delivery_title",
+            "returns_title",
+            "custom_info_sections",
             "delivery_charges",
             "in_stock",
             "is_bestseller",
@@ -336,6 +339,7 @@ class ProductListSerializer(serializers.ModelSerializer):
                 {
                     "filter_type": ft.slug,
                     "option": val.filter_option.slug,
+                    "filter_option_id": val.filter_option.id,
                 }
             )
         return result
@@ -351,6 +355,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
     fabrics = ProductFabricSerializer(many=True, required=False)
     mattresses = ProductMattressSerializer(many=True, required=False)
     dimension_template = serializers.IntegerField(required=False, allow_null=True, write_only=True)
+    filter_values = serializers.ListField(child=serializers.DictField(), required=False)
 
     class Meta:
         model = Product
@@ -370,6 +375,9 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "faqs",
             "delivery_info",
             "returns_guarantee",
+            "delivery_title",
+            "returns_title",
+            "custom_info_sections",
             "delivery_charges",
             "in_stock",
             "is_bestseller",
@@ -384,6 +392,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "fabrics",
             "mattresses",
             "dimension_template",
+            "filter_values",
         )
 
     def _generate_unique_slug(self, raw_value: str) -> str:
@@ -462,12 +471,41 @@ class ProductWriteSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         # Internal helper used by the view; not a Product model field.
         validated_data.pop("_dimension_template_obj", None)
-        return super().create(validated_data)
+        filter_values = validated_data.pop("filter_values", [])
+        product = super().create(validated_data)
+        self._sync_filter_values(product, filter_values)
+        return product
 
     def update(self, instance, validated_data):
         # Internal helper used by the view; not a Product model field.
         validated_data.pop("_dimension_template_obj", None)
-        return super().update(instance, validated_data)
+        filter_values = validated_data.pop("filter_values", None)
+        product = super().update(instance, validated_data)
+        if filter_values is not None:
+          self._sync_filter_values(product, filter_values)
+        return product
+
+    def _sync_filter_values(self, product, filter_values):
+        if filter_values is None:
+            return
+        ids = []
+        for item in filter_values or []:
+            option_id = item.get("filter_option") or item.get("filter_option_id")
+            if option_id:
+                try:
+                    ids.append(int(option_id))
+                except (TypeError, ValueError):
+                    continue
+        ProductFilterValue.objects.filter(product=product).exclude(filter_option_id__in=ids).delete()
+        existing = set(
+            ProductFilterValue.objects.filter(product=product, filter_option_id__in=ids).values_list(
+                "filter_option_id", flat=True
+            )
+        )
+        to_create = [pid for pid in ids if pid not in existing]
+        ProductFilterValue.objects.bulk_create(
+            [ProductFilterValue(product=product, filter_option_id=pid) for pid in to_create]
+        )
 
 
 class CollectionSerializer(serializers.ModelSerializer):

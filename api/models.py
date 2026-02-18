@@ -56,6 +56,9 @@ class Product(models.Model):
     faqs = models.JSONField(default=list, blank=True)
     delivery_info = models.TextField(blank=True)
     returns_guarantee = models.TextField(blank=True)
+    delivery_title = models.CharField(max_length=150, blank=True, default="")
+    returns_title = models.CharField(max_length=150, blank=True, default="")
+    custom_info_sections = models.JSONField(default=list, blank=True)  # list of {title, content}
     delivery_charges = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     in_stock = models.BooleanField(default=True)
     is_bestseller = models.BooleanField(default=False)
