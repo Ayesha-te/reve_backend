@@ -18,6 +18,7 @@ from .views import (
     ProductStyleLibraryViewSet,
     CategoryFilterViewSet,
     CategoryFiltersView,
+    AdminSummaryView,
 )
 
 router = DefaultRouter()
@@ -41,4 +42,5 @@ urlpatterns = [
     path("login/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("categories/<slug:category_slug>/filters/", CategoryFiltersView.as_view(), name="category-filters"),
+    path("admin/summary/", AdminSummaryView.as_view(), name="admin-summary"),
 ]

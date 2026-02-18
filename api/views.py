@@ -18,6 +18,7 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.exceptions import ValidationError
+from django.utils import timezone
 
 from supabase import create_client
 
@@ -66,6 +67,70 @@ class HealthCheckView(APIView):
         return Response({"status": "ok"})
 
 
+class AdminSummaryView(APIView):
+    """
+    Lightweight dashboard metrics for the admin panel.
+    Returns totals plus month-over-month deltas.
+    """
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        from datetime import timedelta
+        from django.db.models import Sum, Count
+
+        now = timezone.now()
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        prev_month_end = start_of_month - timedelta(microseconds=1)
+        prev_month_start = prev_month_end.replace(day=1)
+
+        def pct_change(current, previous):
+            if previous and previous != 0:
+                return round(((current - previous) / previous) * 100, 2)
+            return None
+
+        # Orders and revenue
+        from .models import Order, Product
+
+        orders_current = Order.objects.filter(created_at__gte=start_of_month)
+        orders_prev = Order.objects.filter(created_at__gte=prev_month_start, created_at__lte=prev_month_end)
+
+        total_revenue = float(
+            Order.objects.aggregate(total=Sum("total_amount"))["total"] or 0
+        )
+        revenue_current = float(orders_current.aggregate(total=Sum("total_amount"))["total"] or 0)
+        revenue_prev = float(orders_prev.aggregate(total=Sum("total_amount"))["total"] or 0)
+
+        total_orders = Order.objects.count()
+        total_products = Product.objects.count()
+
+        # Customers = non-staff, non-superuser accounts
+        customers_qs = User.objects.filter(is_staff=False, is_superuser=False)
+        total_customers = customers_qs.count()
+
+        data = {
+            "totals": {
+                "revenue": total_revenue,
+                "orders": total_orders,
+                "products": total_products,
+                "customers": total_customers,
+            },
+            "monthly": {
+                "revenue": {
+                    "current": revenue_current,
+                    "previous": revenue_prev,
+                    "change_percent": pct_change(revenue_current, revenue_prev),
+                },
+                "orders": {
+                    "current": orders_current.count(),
+                    "previous": orders_prev.count(),
+                    "change_percent": pct_change(orders_current.count(), orders_prev.count()),
+                },
+            },
+        }
+        return Response(data)
+
+
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     permission_classes = (AllowAny,)
@@ -85,6 +150,12 @@ class CategoryViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAdminOrReadOnly]
     http_method_names = ["get", "post", "put", "patch", "delete", "head", "options"]
 
+    def _invalidate_cache(self):
+        """Ensure category changes are reflected immediately on the site."""
+        from django.core.cache import cache
+
+        cache.clear()
+
     @method_decorator(cache_page(60 * 5))
     def list(self, request, *args, **kwargs):
         """Cache category list for 5 minutes to avoid DB thrash and slow responses."""
@@ -100,6 +171,26 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         slug = serializer.validated_data.get("slug") or slugify(serializer.validated_data.get("name", ""))
         serializer.save(slug=slug)
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
+
+    def partial_update(self, request, *args, **kwargs):
+        response = super().partial_update(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
+
+    def destroy(self, request, *args, **kwargs):
+        response = super().destroy(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
 
 
 class SubCategoryViewSet(viewsets.ModelViewSet):
@@ -124,6 +215,12 @@ class CollectionViewSet(viewsets.ModelViewSet):
     serializer_class = CollectionSerializer
     permission_classes = [IsAdminOrReadOnly]
 
+    def _invalidate_cache(self):
+        """Prevent stale collection lists after admin changes."""
+        from django.core.cache import cache
+
+        cache.clear()
+
     @method_decorator(cache_page(60 * 5))
     def list(self, request, *args, **kwargs):
         """Cache collection list for 5 minutes to prevent repeated heavy DB hits."""
@@ -139,6 +236,26 @@ class CollectionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         slug = serializer.validated_data.get("slug") or slugify(serializer.validated_data.get("name", ""))
         serializer.save(slug=slug)
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
+
+    def partial_update(self, request, *args, **kwargs):
+        response = super().partial_update(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
+
+    def destroy(self, request, *args, **kwargs):
+        response = super().destroy(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
 
 
 class ProductViewSet(viewsets.ModelViewSet):
