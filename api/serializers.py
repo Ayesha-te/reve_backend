@@ -576,6 +576,7 @@ class FilterOptionSerializer(serializers.ModelSerializer):
     product_count = serializers.SerializerMethodField()
     filter_type = serializers.PrimaryKeyRelatedField(queryset=FilterType.objects.all(), write_only=True)
     filter_type_id = serializers.IntegerField(source="filter_type.id", read_only=True)
+    filter_type_name = serializers.CharField(source="filter_type.name", read_only=True)
     
     class Meta:
         model = FilterOption
@@ -585,6 +586,7 @@ class FilterOptionSerializer(serializers.ModelSerializer):
             'slug',
             'filter_type',
             'filter_type_id',
+            'filter_type_name',
             'color_code',
             'icon_url',
             'price_delta',
