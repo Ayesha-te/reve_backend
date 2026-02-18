@@ -14,6 +14,7 @@ from .views import (
     UploadViewSet,
     PaymentViewSet,
     FilterTypeViewSet,
+    FilterOptionViewSet,
     DimensionTemplateViewSet,
     ProductStyleLibraryViewSet,
     CategoryFilterViewSet,
@@ -31,6 +32,7 @@ router.register(r"reviews", ReviewViewSet)
 router.register(r"uploads", UploadViewSet, basename="uploads")
 router.register(r"payments", PaymentViewSet, basename="payments")
 router.register(r"filter-types", FilterTypeViewSet)
+router.register(r"filter-options", FilterOptionViewSet)
 router.register(r"dimension-templates", DimensionTemplateViewSet)
 router.register(r"style-groups", ProductStyleLibraryViewSet, basename="style-groups")
 router.register(r"category-filters", CategoryFilterViewSet)

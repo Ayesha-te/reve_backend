@@ -574,10 +574,24 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 class FilterOptionSerializer(serializers.ModelSerializer):
     product_count = serializers.SerializerMethodField()
+    filter_type = serializers.PrimaryKeyRelatedField(queryset=FilterType.objects.all(), write_only=True)
+    filter_type_id = serializers.IntegerField(source="filter_type.id", read_only=True)
     
     class Meta:
         model = FilterOption
-        fields = ['id', 'name', 'slug', 'color_code', 'icon_url', 'price_delta', 'is_wingback', 'metadata', 'product_count']
+        fields = [
+            'id',
+            'name',
+            'slug',
+            'filter_type',
+            'filter_type_id',
+            'color_code',
+            'icon_url',
+            'price_delta',
+            'is_wingback',
+            'metadata',
+            'product_count',
+        ]
     
     def get_product_count(self, obj):
         # This will be computed based on current category context

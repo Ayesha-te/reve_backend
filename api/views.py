@@ -54,6 +54,7 @@ from .serializers import (
     ReviewSerializer,
     CollectionSerializer,
     FilterTypeSerializer,
+    FilterOptionSerializer,
     CategoryFilterSerializer,
     ProductFilterValueSerializer,
     ProductStyleLibrarySerializer,
@@ -952,6 +953,13 @@ class FilterTypeViewSet(viewsets.ModelViewSet):
     """ViewSet for managing filter types"""
     queryset = FilterType.objects.all().order_by('display_order', 'name')
     serializer_class = FilterTypeSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+
+class FilterOptionViewSet(viewsets.ModelViewSet):
+    """CRUD for individual filter options (e.g., King, Double)."""
+    queryset = FilterOption.objects.all().select_related("filter_type").order_by("display_order", "name")
+    serializer_class = FilterOptionSerializer
     permission_classes = [IsAdminOrReadOnly]
 
 
