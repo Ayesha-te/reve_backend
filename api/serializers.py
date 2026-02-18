@@ -615,7 +615,17 @@ class CategoryFilterSerializer(serializers.ModelSerializer):
     
     class Meta:
         model = CategoryFilter
-        fields = "__all__"
+        fields = (
+            "id",
+            "category",
+            "subcategory",
+            "filter_type",
+            "display_order",
+            "is_active",
+            "category_name",
+            "subcategory_name",
+            "filter_type_name",
+        )
 
 
 class ProductFilterValueSerializer(serializers.ModelSerializer):
