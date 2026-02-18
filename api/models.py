@@ -63,6 +63,8 @@ class Product(models.Model):
     in_stock = models.BooleanField(default=True)
     is_bestseller = models.BooleanField(default=False)
     is_new = models.BooleanField(default=False)
+    # Allows per-product control over whether size option icons are displayed
+    show_size_icons = models.BooleanField(default=True)
     rating = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
     review_count = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
