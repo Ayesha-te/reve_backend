@@ -482,6 +482,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                 description=mattress.get("description", ""),
                 image_url=mattress.get("image_url", ""),
                 price=mattress.get("price", None),
+                enable_bunk_positions=bool(mattress.get("enable_bunk_positions", False)),
             )
 
     def _validate_related_data(self, images, videos, colors, sizes, styles, fabrics, mattresses):
@@ -637,6 +638,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             description = str((mat or {}).get("description", "")).strip()
             image_url = str((mat or {}).get("image_url", "")).strip()
             source_product = mat.get("source_product")
+            enable_bunk_positions = bool((mat or {}).get("enable_bunk_positions", False))
             raw_price = mat.get("price", None)
             price = None
             if raw_price not in (None, "", "null"):
@@ -657,6 +659,7 @@ class ProductViewSet(viewsets.ModelViewSet):
                     "image_url": image_url,
                     "price": price,
                     "source_product": source_product,
+                    "enable_bunk_positions": enable_bunk_positions,
                 }
             )
 

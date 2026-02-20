@@ -136,6 +136,7 @@ class ProductMattressSerializer(serializers.ModelSerializer):
             "description",
             "image_url",
             "price",
+            "enable_bunk_positions",
             "source_product",
             "source_product_name",
             "source_product_slug",
