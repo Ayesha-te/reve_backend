@@ -199,6 +199,12 @@ class SubCategoryViewSet(viewsets.ModelViewSet):
     serializer_class = SubCategorySerializer
     permission_classes = [IsAdminOrReadOnly]
 
+    def _invalidate_cache(self):
+        """Ensure category listings reflect subcategory changes immediately."""
+        from django.core.cache import cache
+
+        cache.clear()
+
     def get_queryset(self):
         queryset = super().get_queryset()
         category_id = self.request.query_params.get("category")
@@ -209,6 +215,26 @@ class SubCategoryViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         slug = serializer.validated_data.get("slug") or slugify(serializer.validated_data.get("name", ""))
         serializer.save(slug=slug)
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
+
+    def update(self, request, *args, **kwargs):
+        response = super().update(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
+
+    def partial_update(self, request, *args, **kwargs):
+        response = super().partial_update(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
+
+    def destroy(self, request, *args, **kwargs):
+        response = super().destroy(request, *args, **kwargs)
+        self._invalidate_cache()
+        return response
 
 
 class CollectionViewSet(viewsets.ModelViewSet):
