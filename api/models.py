@@ -67,6 +67,8 @@ class Product(models.Model):
     show_size_icons = models.BooleanField(default=True)
     rating = models.DecimalField(max_digits=3, decimal_places=1, default=0.0)
     review_count = models.IntegerField(default=0)
+    # Optional free-form paragraph shown in place of the dimensions table when provided
+    dimension_paragraph = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -77,6 +79,7 @@ class Product(models.Model):
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, related_name="images", on_delete=models.CASCADE)
     url = models.URLField(max_length=1000)
+    color_name = models.CharField(max_length=120, blank=True, default="")
 
 
 class ProductVideo(models.Model):

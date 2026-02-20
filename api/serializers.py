@@ -62,7 +62,7 @@ class CategorySerializer(serializers.ModelSerializer):
 class ProductImageSerializer(serializers.ModelSerializer):
     class Meta:
         model = ProductImage
-        fields = ("id", "url")
+        fields = ("id", "url", "color_name")
 
 
 class ProductVideoSerializer(serializers.ModelSerializer):
@@ -197,6 +197,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "returns_title",
             "custom_info_sections",
             "delivery_charges",
+            "dimension_paragraph",
             "in_stock",
             "is_bestseller",
             "is_new",
@@ -325,6 +326,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "review_count",
             "images",
             "sizes",
+            "dimension_paragraph",
             "category_slug",
             "subcategory_slug",
             "filter_values",
@@ -375,6 +377,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "short_description",
             "features",
             "dimensions",
+            "dimension_paragraph",
             "faqs",
             "delivery_info",
             "returns_guarantee",
@@ -455,6 +458,9 @@ class ProductWriteSerializer(serializers.ModelSerializer):
                 if cleaned_values:
                     cleaned_dimensions.append({"measurement": measurement, "values": cleaned_values})
         attrs["dimensions"] = cleaned_dimensions
+        if "dimension_paragraph" in attrs:
+            dp = attrs.get("dimension_paragraph") or ""
+            attrs["dimension_paragraph"] = str(dp).strip()
 
         raw_slug_or_name = attrs.get("slug") or attrs.get("name")
         if raw_slug_or_name:
