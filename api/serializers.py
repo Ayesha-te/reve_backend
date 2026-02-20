@@ -329,6 +329,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "images",
             "sizes",
             "dimension_paragraph",
+            "show_dimensions_table",
             "category_slug",
             "subcategory_slug",
             "filter_values",
