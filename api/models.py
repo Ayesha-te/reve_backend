@@ -69,6 +69,7 @@ class Product(models.Model):
     review_count = models.IntegerField(default=0)
     # Optional free-form paragraph shown in place of the dimensions table when provided
     dimension_paragraph = models.TextField(blank=True, default="")
+    show_dimensions_table = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
