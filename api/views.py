@@ -487,6 +487,9 @@ class ProductViewSet(viewsets.ModelViewSet):
                 image_url=mattress.get("image_url", ""),
                 price=mattress.get("price", None),
                 enable_bunk_positions=bool(mattress.get("enable_bunk_positions", False)),
+                price_top=mattress.get("price_top", None),
+                price_bottom=mattress.get("price_bottom", None),
+                price_both=mattress.get("price_both", None),
             )
 
     def _validate_related_data(self, images, videos, colors, sizes, styles, fabrics, mattresses):
@@ -501,6 +504,7 @@ class ProductViewSet(viewsets.ModelViewSet):
         fabric_url_max = ProductFabric._meta.get_field("image_url").max_length
         mattress_name_max = ProductMattress._meta.get_field("name").max_length
         mattress_image_max = ProductMattress._meta.get_field("image_url").max_length
+        mattress_price_max_digits = ProductMattress._meta.get_field("price").max_digits
 
         cleaned_images = []
         for img in images:
@@ -647,13 +651,19 @@ class ProductViewSet(viewsets.ModelViewSet):
             image_url = str((mat or {}).get("image_url", "")).strip()
             source_product = mat.get("source_product")
             enable_bunk_positions = bool((mat or {}).get("enable_bunk_positions", False))
-            raw_price = mat.get("price", None)
-            price = None
-            if raw_price not in (None, "", "null"):
+            def _clean_price(field):
+                raw = mat.get(field, None)
+                if raw in (None, "", "null"):
+                    return None
                 try:
-                    price = Decimal(raw_price)
+                    return Decimal(raw)
                 except (InvalidOperation, TypeError):
-                    raise ValidationError({"mattresses": [f"Invalid price for mattress '{name or 'untitled'}'."]})
+                    raise ValidationError({"mattresses": [f"Invalid {field.replace('_',' ')} for mattress '{name or 'untitled'}'."]})
+
+            price = _clean_price("price")
+            price_top = _clean_price("price_top")
+            price_bottom = _clean_price("price_bottom")
+            price_both = _clean_price("price_both")
             if name and len(name) > mattress_name_max:
                 raise ValidationError({"mattresses": [f"Mattress name too long (max {mattress_name_max} chars)."]})
             if image_url and len(image_url) > mattress_image_max:
@@ -668,6 +678,9 @@ class ProductViewSet(viewsets.ModelViewSet):
                     "price": price,
                     "source_product": source_product,
                     "enable_bunk_positions": enable_bunk_positions,
+                    "price_top": price_top,
+                    "price_bottom": price_bottom,
+                    "price_both": price_both,
                 }
             )
 

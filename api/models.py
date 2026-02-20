@@ -138,6 +138,9 @@ class ProductMattress(models.Model):
     price = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     # When true, shoppers can choose Top / Bottom / Both for bunk upgrades. "Both" charges 2x price.
     enable_bunk_positions = models.BooleanField(default=False)
+    price_top = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_bottom = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    price_both = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
 
     class Meta:
         ordering = ["id"]
