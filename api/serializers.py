@@ -205,6 +205,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "is_bestseller",
             "is_new",
             "show_size_icons",
+            "sort_order",
             "rating",
             "review_count",
             "created_at",
@@ -333,6 +334,7 @@ class ProductListSerializer(serializers.ModelSerializer):
             "sizes",
             "dimension_paragraph",
             "show_dimensions_table",
+            "sort_order",
             "category_slug",
             "subcategory_slug",
             "filter_values",
@@ -396,6 +398,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "is_bestseller",
             "is_new",
             "show_size_icons",
+            "sort_order",
             "rating",
             "review_count",
             "images",
@@ -407,6 +410,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "mattresses",
             "dimension_template",
             "filter_values",
+            "sort_order",
         )
 
     def _generate_unique_slug(self, raw_value: str) -> str:

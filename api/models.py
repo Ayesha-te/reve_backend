@@ -70,11 +70,16 @@ class Product(models.Model):
     # Optional free-form paragraph shown in place of the dimensions table when provided
     dimension_paragraph = models.TextField(blank=True, default="")
     show_dimensions_table = models.BooleanField(default=True)
+    # Manual ordering for listings (lower numbers appear first)
+    sort_order = models.IntegerField(default=0)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
         return self.name
+
+    class Meta:
+        ordering = ["sort_order", "-created_at"]
 
 
 class ProductImage(models.Model):

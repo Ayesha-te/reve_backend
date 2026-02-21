@@ -300,7 +300,7 @@ class ProductViewSet(viewsets.ModelViewSet):
             to_attr="filter_values_all",
         ),
         "dimension_template_link__template__rows",
-    ).order_by("-created_at")
+    ).order_by("sort_order", "-created_at")
     permission_classes = [IsAdminOrReadOnly]
 
     def get_serializer_class(self):

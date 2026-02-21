@@ -72,8 +72,9 @@ class ProductFilterValueInline(admin.TabularInline):
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "price", "in_stock", "is_bestseller", "is_new")
+    list_display = ("name", "category", "price", "in_stock", "is_bestseller", "is_new", "sort_order")
     list_filter = ("category", "in_stock", "is_bestseller", "is_new")
+    ordering = ("sort_order", "-created_at")
     search_fields = ["name", "slug", "short_description", "description"]
     prepopulated_fields = {"slug": ("name",)}
     inlines = [ProductImageInline, ProductVideoInline, ProductColorInline, ProductSizeInline, ProductStyleInline, ProductFilterValueInline]
