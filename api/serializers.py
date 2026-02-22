@@ -387,6 +387,7 @@ class ProductWriteSerializer(serializers.ModelSerializer):
             "features",
             "dimensions",
             "dimension_paragraph",
+            "dimension_images",
             "show_dimensions_table",
             "faqs",
             "delivery_info",
