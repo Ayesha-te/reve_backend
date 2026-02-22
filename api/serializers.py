@@ -220,6 +220,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "filters",
             "computed_dimensions",
             "dimension_paragraph",
+            "dimension_images",
             "show_dimensions_table",
             "dimension_template",
             "dimension_template_name",
@@ -472,6 +473,18 @@ class ProductWriteSerializer(serializers.ModelSerializer):
         if "dimension_paragraph" in attrs:
             dp = attrs.get("dimension_paragraph") or ""
             attrs["dimension_paragraph"] = str(dp).strip()
+        if "dimension_images" in attrs:
+            imgs = attrs.get("dimension_images") or []
+            cleaned = []
+            if isinstance(imgs, list):
+                for entry in imgs:
+                    if not isinstance(entry, dict):
+                        continue
+                    size = str(entry.get("size", "")).strip()
+                    url = str(entry.get("url", "")).strip()
+                    if size and url:
+                        cleaned.append({"size": size, "url": url})
+            attrs["dimension_images"] = cleaned
 
         raw_slug_or_name = attrs.get("slug") or attrs.get("name")
         if raw_slug_or_name:
