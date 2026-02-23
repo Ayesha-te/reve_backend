@@ -548,6 +548,38 @@ class CollectionSerializer(serializers.ModelSerializer):
     products = serializers.PrimaryKeyRelatedField(many=True, queryset=Product.objects.all(), required=False)
     products_data = ProductSerializer(source="products", many=True, read_only=True)
 
+    def _unique_slug(self, base_slug: str) -> str:
+        """
+        Ensure the slug is unique by appending a numeric suffix when needed.
+        This prevents DB-level IntegrityError on duplicate slugs.
+        """
+        slug = base_slug
+        suffix = 2
+        qs = Collection.objects.all()
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        while qs.filter(slug=slug).exists():
+            slug = f"{base_slug}-{suffix}"
+            suffix += 1
+        return slug
+
+    def validate(self, attrs):
+        instance = getattr(self, "instance", None)
+        # If a slug is explicitly provided, trust it; otherwise derive from name.
+        raw_slug = attrs.get("slug")
+        name_for_slug = attrs.get("name") or (instance.name if instance else None)
+
+        if raw_slug is None and instance:
+            # No incoming slug and we are updating: keep current slug
+            return super().validate(attrs)
+
+        base_slug = slugify(raw_slug or name_for_slug or "")
+        if not base_slug:
+            raise serializers.ValidationError({"slug": "Slug or name is required to generate slug"})
+
+        attrs["slug"] = self._unique_slug(base_slug)
+        return super().validate(attrs)
+
     class Meta:
         model = Collection
         fields = (
