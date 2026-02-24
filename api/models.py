@@ -45,6 +45,9 @@ class HeroSlide(models.Model):
     category = models.ForeignKey(
         Category, related_name="hero_slides", on_delete=models.SET_NULL, null=True, blank=True
     )
+    subcategory = models.ForeignKey(
+        SubCategory, related_name="hero_slides", on_delete=models.SET_NULL, null=True, blank=True
+    )
     cta_text = models.CharField(max_length=120, default="Shop Now")
     cta_link = models.CharField(max_length=1000, blank=True, default="")
     image = models.URLField(max_length=1000)

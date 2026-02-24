@@ -600,6 +600,8 @@ class CollectionSerializer(serializers.ModelSerializer):
 class HeroSlideSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source="category.name", read_only=True)
     category_slug = serializers.CharField(source="category.slug", read_only=True)
+    subcategory_name = serializers.CharField(source="subcategory.name", read_only=True)
+    subcategory_slug = serializers.CharField(source="subcategory.slug", read_only=True)
 
     class Meta:
         model = HeroSlide
@@ -610,6 +612,9 @@ class HeroSlideSerializer(serializers.ModelSerializer):
             "category",
             "category_name",
             "category_slug",
+            "subcategory",
+            "subcategory_name",
+            "subcategory_slug",
             "cta_text",
             "cta_link",
             "image",
@@ -621,11 +626,17 @@ class HeroSlideSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         category = attrs.get("category") or getattr(self.instance, "category", None)
+        subcategory = attrs.get("subcategory") or getattr(self.instance, "subcategory", None)
         incoming_cta = attrs.get("cta_link")
         existing_cta = getattr(self.instance, "cta_link", "") if hasattr(self, "instance") and self.instance else ""
 
-        if category and (incoming_cta is None or incoming_cta.strip() == ""):
-            attrs["cta_link"] = existing_cta or f"/category/{category.slug}"
+        if (incoming_cta is None or incoming_cta.strip() == ""):
+            if subcategory:
+                attrs["cta_link"] = existing_cta or f"/category/{subcategory.category.slug}?sub={subcategory.slug}"
+            elif category:
+                attrs["cta_link"] = existing_cta or f"/category/{category.slug}"
+            else:
+                attrs["cta_link"] = existing_cta
         return attrs
 
 

@@ -288,7 +288,9 @@ class CollectionViewSet(viewsets.ModelViewSet):
 
 
 class HeroSlideViewSet(viewsets.ModelViewSet):
-    queryset = HeroSlide.objects.all().select_related("category").order_by("sort_order", "-updated_at")
+    queryset = HeroSlide.objects.all().select_related("category", "subcategory", "subcategory__category").order_by(
+        "sort_order", "-updated_at"
+    )
     serializer_class = HeroSlideSerializer
     permission_classes = [IsAdminOrReadOnly]
 
