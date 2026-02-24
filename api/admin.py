@@ -12,6 +12,7 @@ from .models import (
     OrderItem,
     Review,
     Collection,
+    HeroSlide,
     FilterType,
     FilterOption,
     CategoryFilter,
@@ -104,6 +105,14 @@ class CollectionAdmin(admin.ModelAdmin):
     list_display = ("name", "slug", "sort_order", "created_at")
     prepopulated_fields = {"slug": ("name",)}
     filter_horizontal = ('products',)
+
+
+@admin.register(HeroSlide)
+class HeroSlideAdmin(admin.ModelAdmin):
+    list_display = ("title", "category", "is_active", "sort_order", "updated_at")
+    list_filter = ("is_active", "category")
+    search_fields = ("title", "subtitle", "cta_link")
+    ordering = ("sort_order", "-updated_at")
 
 
 # Filter System Admin

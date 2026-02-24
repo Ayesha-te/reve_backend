@@ -43,6 +43,7 @@ from .models import (
     ProductFilterValue,
     DimensionTemplate,
     ProductDimensionTemplate,
+    HeroSlide,
 )
 from .serializers import (
     RegisterSerializer,
@@ -53,6 +54,7 @@ from .serializers import (
     OrderSerializer,
     ReviewSerializer,
     CollectionSerializer,
+    HeroSlideSerializer,
     FilterTypeSerializer,
     FilterOptionSerializer,
     CategoryFilterSerializer,
@@ -283,6 +285,27 @@ class CollectionViewSet(viewsets.ModelViewSet):
         response = super().destroy(request, *args, **kwargs)
         self._invalidate_cache()
         return response
+
+
+class HeroSlideViewSet(viewsets.ModelViewSet):
+    queryset = HeroSlide.objects.all().select_related("category").order_by("sort_order", "-updated_at")
+    serializer_class = HeroSlideSerializer
+    permission_classes = [IsAdminOrReadOnly]
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        active_only = self.request.query_params.get("active_only")
+        if not self.request.user.is_staff:
+            queryset = queryset.filter(is_active=True)
+        elif active_only in ("1", "true", "True"):
+            queryset = queryset.filter(is_active=True)
+        return queryset
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
 
 
 class ProductViewSet(viewsets.ModelViewSet):

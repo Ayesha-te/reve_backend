@@ -16,6 +16,7 @@ from .models import (
     OrderItem,
     Review,
     Collection,
+    HeroSlide,
     FilterType,
     FilterOption,
     CategoryFilter,
@@ -594,6 +595,38 @@ class CollectionSerializer(serializers.ModelSerializer):
             "products",
             "products_data",
         )
+
+
+class HeroSlideSerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source="category.name", read_only=True)
+    category_slug = serializers.CharField(source="category.slug", read_only=True)
+
+    class Meta:
+        model = HeroSlide
+        fields = (
+            "id",
+            "title",
+            "subtitle",
+            "category",
+            "category_name",
+            "category_slug",
+            "cta_text",
+            "cta_link",
+            "image",
+            "is_active",
+            "sort_order",
+            "created_at",
+            "updated_at",
+        )
+
+    def validate(self, attrs):
+        category = attrs.get("category") or getattr(self.instance, "category", None)
+        incoming_cta = attrs.get("cta_link")
+        existing_cta = getattr(self.instance, "cta_link", "") if hasattr(self, "instance") and self.instance else ""
+
+        if category and (incoming_cta is None or incoming_cta.strip() == ""):
+            attrs["cta_link"] = existing_cta or f"/category/{category.slug}"
+        return attrs
 
 
 class OrderItemSerializer(serializers.ModelSerializer):

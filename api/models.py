@@ -39,6 +39,27 @@ class Collection(models.Model):
         return self.name
 
 
+class HeroSlide(models.Model):
+    title = models.CharField(max_length=255)
+    subtitle = models.CharField(max_length=500, blank=True, default="")
+    category = models.ForeignKey(
+        Category, related_name="hero_slides", on_delete=models.SET_NULL, null=True, blank=True
+    )
+    cta_text = models.CharField(max_length=120, default="Shop Now")
+    cta_link = models.CharField(max_length=1000, blank=True, default="")
+    image = models.URLField(max_length=1000)
+    is_active = models.BooleanField(default=True)
+    sort_order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["sort_order", "-updated_at"]
+
+    def __str__(self) -> str:
+        return self.title
+
+
 class Product(models.Model):
     name = models.CharField(max_length=255)
     slug = models.SlugField(unique=True, max_length=255)

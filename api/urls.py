@@ -8,6 +8,7 @@ from .views import (
     CategoryViewSet,
     SubCategoryViewSet,
     CollectionViewSet,
+    HeroSlideViewSet,
     ProductViewSet,
     OrderViewSet,
     ReviewViewSet,
@@ -26,6 +27,7 @@ router = DefaultRouter()
 router.register(r"categories", CategoryViewSet)
 router.register(r"subcategories", SubCategoryViewSet)
 router.register(r"collections", CollectionViewSet)
+router.register(r"hero-slides", HeroSlideViewSet)
 router.register(r"products", ProductViewSet)
 router.register(r"orders", OrderViewSet)
 router.register(r"reviews", ReviewViewSet)
